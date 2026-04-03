@@ -29,6 +29,13 @@ def _common_delete_options(f):
         help="Only delete posts published before this date.",
     )(f)
     f = click.option(
+        "--after",
+        "after_date",
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="Only delete posts published after this date.",
+    )(f)
+    f = click.option(
         "--filter",
         "llm_description",
         default=None,
@@ -69,13 +76,23 @@ def _build_config(
     return cfg
 
 
-def _parse_before_date(before_date: str | None) -> datetime | None:
-    if before_date is None:
+def _parse_date(value: str | None, flag: str) -> datetime | None:
+    if value is None:
         return None
     try:
-        return datetime.strptime(before_date, "%Y-%m-%d")
+        return datetime.strptime(value, "%Y-%m-%d")
     except ValueError:
-        raise click.ClickException(f"Invalid date format: {before_date!r}. Use YYYY-MM-DD.")
+        raise click.ClickException(f"Invalid date for {flag}: {value!r}. Use YYYY-MM-DD.")
+
+
+def _parse_date_range(
+    before: str | None, after: str | None
+) -> tuple[datetime | None, datetime | None]:
+    dt_before = _parse_date(before, "--before")
+    dt_after = _parse_date(after, "--after")
+    if dt_before and dt_after and dt_after >= dt_before:
+        raise click.ClickException("--after must be earlier than --before.")
+    return dt_before, dt_after
 
 
 def _build_llm_filter(provider: str | None, api_key: str | None, description: str | None):
@@ -152,43 +169,46 @@ def delete():
 @delete.command("tweets")
 @_common_delete_options
 def delete_tweets(
-    dry_run, headless, min_delay, max_delay, before_date, llm_description, llm_provider, llm_api_key
+    dry_run, headless, min_delay, max_delay, before_date, after_date, llm_description, llm_provider, llm_api_key
 ):
     """Delete all tweets (including replies, retweets, and quotes)."""
     cfg = _build_config(headless, dry_run, min_delay, max_delay)
-    dt = _parse_before_date(before_date)
+    dt_before, dt_after = _parse_date_range(before_date, after_date)
     llm = _build_llm_filter(llm_provider, llm_api_key, llm_description)
     asyncio.run(_run_delete(cfg, item_types=["tweet", "reply", "retweet", "quote"],
-                            before_date=dt, llm_filter=llm, llm_description=llm_description or ""))
+                            before_date=dt_before, after_date=dt_after,
+                            llm_filter=llm, llm_description=llm_description or ""))
 
 
 @delete.command("likes")
 @_common_delete_options
 def delete_likes(
-    dry_run, headless, min_delay, max_delay, before_date, llm_description, llm_provider, llm_api_key
+    dry_run, headless, min_delay, max_delay, before_date, after_date, llm_description, llm_provider, llm_api_key
 ):
     """Unlike all liked tweets."""
     cfg = _build_config(headless, dry_run, min_delay, max_delay)
-    dt = _parse_before_date(before_date)
+    dt_before, dt_after = _parse_date_range(before_date, after_date)
     llm = _build_llm_filter(llm_provider, llm_api_key, llm_description)
     asyncio.run(_run_delete(cfg, item_types=["like"],
-                            before_date=dt, llm_filter=llm, llm_description=llm_description or ""))
+                            before_date=dt_before, after_date=dt_after,
+                            llm_filter=llm, llm_description=llm_description or ""))
 
 
 @delete.command("all")
 @_common_delete_options
 def delete_all(
-    dry_run, headless, min_delay, max_delay, before_date, llm_description, llm_provider, llm_api_key
+    dry_run, headless, min_delay, max_delay, before_date, after_date, llm_description, llm_provider, llm_api_key
 ):
     """Delete all tweets and unlike all likes."""
     cfg = _build_config(headless, dry_run, min_delay, max_delay)
-    dt = _parse_before_date(before_date)
+    dt_before, dt_after = _parse_date_range(before_date, after_date)
     llm = _build_llm_filter(llm_provider, llm_api_key, llm_description)
     asyncio.run(_run_delete(cfg, item_types=None,
-                            before_date=dt, llm_filter=llm, llm_description=llm_description or ""))
+                            before_date=dt_before, after_date=dt_after,
+                            llm_filter=llm, llm_description=llm_description or ""))
 
 
-async def _run_delete(cfg, item_types, before_date, llm_filter, llm_description):
+async def _run_delete(cfg, item_types, before_date, after_date, llm_filter, llm_description):
     from twitter_cleaner.browser.session import TwitterSession
     from twitter_cleaner.store.progress_db import ProgressDB
     from twitter_cleaner.worker.runner import run_deletion
@@ -208,6 +228,7 @@ async def _run_delete(cfg, item_types, before_date, llm_filter, llm_description)
             config=cfg,
             item_types=item_types,
             before_date=before_date,
+            after_date=after_date,
             llm_filter=llm_filter,
             llm_description=llm_description,
         )

@@ -23,6 +23,7 @@ async def run_deletion(
     config: Config,
     item_types: list[str] | None = None,
     before_date: datetime | None = None,
+    after_date: datetime | None = None,
     llm_filter=None,
     llm_description: str = "",
 ) -> None:
@@ -39,8 +40,8 @@ async def run_deletion(
                 break
 
             # Apply in-memory filters to batch
-            if before_date or llm_filter:
-                batch = _apply_filters(db, batch, before_date, llm_filter, llm_description)
+            if before_date or after_date or llm_filter:
+                batch = _apply_filters(db, batch, before_date, after_date, llm_filter, llm_description)
             if not batch:
                 # All items in this batch were filtered out — re-query for next batch
                 # (the filtered items were marked skipped, so they won't re-appear)
@@ -74,14 +75,14 @@ async def run_deletion(
                 await asyncio.sleep(jitter)
 
 
-def _apply_filters(db, batch, before_date, llm_filter, llm_description):
-    from twitter_cleaner.filters.date_filter import before_date as check_before
+def _apply_filters(db, batch, before_date, after_date, llm_filter, llm_description):
+    from twitter_cleaner.filters.date_filter import in_date_range
 
     filtered = []
     for row in batch:
-        if before_date and row["type"] != "like":
+        if (before_date or after_date) and row["type"] != "like":
             tweet_date = row["tweet_date"] or ""
-            if not check_before(tweet_date, before_date):
+            if not in_date_range(tweet_date, before=before_date, after=after_date):
                 db.mark_skipped(row["id"], row["type"])
                 continue
         filtered.append(row)
