@@ -118,9 +118,15 @@ async def undo_retweet(
         return "skipped"
 
     try:
-        # The retweet button shows as "unretweet" (filled/green) when already retweeted
+        # Wait for either button to appear — whichever shows up first tells us the state.
+        await page.locator('[data-testid="unretweet"], [data-testid="retweet"]').first.wait_for(
+            state="visible", timeout=TIMEOUT
+        )
+        # If only the hollow "retweet" button is present, it's already unretweeted.
+        if await page.locator('[data-testid="unretweet"]').count() == 0:
+            return "skipped"
+
         retweet_btn = page.locator('[data-testid="unretweet"]').first
-        await retweet_btn.wait_for(state="visible", timeout=TIMEOUT)
         await retweet_btn.click()
         await asyncio.sleep(0.5)
 

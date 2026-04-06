@@ -21,7 +21,8 @@
       "Bash(python -c \"from twitter_cleaner.cli import main; main\\(\\)\" delete --type reply --dry-run --after 2026-01-01)",
       "Bash(pip install:*)",
       "Bash(python -c \"from twitter_cleaner import errors, cli, filters.llm_filter; print\\('imports ok'\\)\")",
-      "Bash(.venv/Scripts/python -c ':*)"
+      "Bash(.venv/Scripts/python -c ':*)",
+      "Bash(python3:*)"
     ]
   }
 }

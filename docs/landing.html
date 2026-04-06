@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── SEO ── -->
+  <title>twitter-cleaner — Bulk-delete your X / Twitter history. No API key needed.</title>
+  <meta name="description" content="Open-source CLI tool to bulk-delete tweets, retweets, replies, quotes, and likes. Works with your full Twitter archive — not limited to 3,200 posts. No API key required. Smart date & LLM filters included." />
+  <meta name="keywords" content="twitter cleaner, delete tweets, bulk delete twitter, remove twitter history, X cleaner, delete likes twitter, twitter archive delete, open source twitter tool, playwright twitter" />
+  <meta name="author" content="twitter-cleaner" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- ── Open Graph ── -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="twitter-cleaner — Delete your X / Twitter history" />
+  <meta property="og:description" content="Bulk-delete tweets, retweets, likes, and replies. Works with your full Twitter archive. No API key required." />
+  <meta property="og:image" content="og-image.png" />
+
+  <!-- ── Twitter Card ── -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="twitter-cleaner" />
+  <meta name="twitter:description" content="Bulk-delete your Twitter / X history. No API key needed." />
+  <meta name="twitter:image" content="og-image.png" />
+
+  <!-- ── Favicon (inline SVG) ── -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d9bf0'/%3E%3Cpath d='M8 8L24 24M24 8L8 24' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='7' r='3' fill='white' opacity='0.95'/%3E%3Ccircle cx='21' cy='5' r='1.8' fill='white' opacity='0.6'/%3E%3C/svg%3E" />
+
+  <style>
+    /* ─────────────────────────────────────────────
+       Tokens
+    ───────────────────────────────────────────── */
+    :root {
+      --bg:           #07090f;
+      --bg-card:      #0d1018;
+      --bg-card-2:    #111520;
+      --border:       rgba(255,255,255,0.07);
+      --border-hover: rgba(29,155,240,0.4);
+      --text:         #f0f4f8;
+      --text-muted:   #7d8fa8;
+      --text-dim:     #4a5568;
+      --accent:       #1d9bf0;
+      --accent-dark:  #1581cc;
+      --accent-glow:  rgba(29,155,240,0.18);
+      --accent-glow2: rgba(29,155,240,0.07);
+      --purple:       #8b5cf6;
+      --green:        #10b981;
+      --amber:        #f59e0b;
+      --font:         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --mono:         "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --radius:       12px;
+      --radius-sm:    8px;
+    }
+
+    /* ─────────────────────────────────────────────
+       Reset
+    ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img, svg { display: block; }
+
+    /* ─────────────────────────────────────────────
+       Noise overlay (subtle texture)
+    ───────────────────────────────────────────── */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─────────────────────────────────────────────
+       Nav
+    ───────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 60px;
+      background: rgba(7,9,15,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo-mark {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-text {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 7px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: var(--font);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      box-shadow: 0 0 20px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    /* ─────────────────────────────────────────────
+       Hero
+    ───────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      padding: 160px 40px 100px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* radial glow behind headline */
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: 60px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(29,155,240,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* dot-grid background */
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(29,155,240,0.1);
+      border: 1px solid rgba(29,155,240,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12.5px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 60px);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 22px;
+    }
+
+    .hero h1 .grad {
+      background: linear-gradient(135deg, #fff 0%, #a8d8f8 40%, var(--accent) 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--text-muted);
+      max-width: 540px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 56px;
+    }
+
+    .btn-hero {
+      font-size: 15px;
+      padding: 11px 26px;
+      border-radius: 10px;
+    }
+
+    .btn-hero-outline {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-size: 15px;
+      padding: 11px 26px;
+      border-radius: 10px;
+    }
+    .btn-hero-outline:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    /* ─────────────────────────────────────────────
+       Terminal Demo
+    ───────────────────────────────────────────── */
+    .terminal-wrap {
+      position: relative;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* glow under terminal */
+    .terminal-wrap::before {
+      content: "";
+      position: absolute;
+      bottom: -30px; left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 60px;
+      background: radial-gradient(ellipse at center, rgba(29,155,240,0.22) 0%, transparent 70%);
+      filter: blur(12px);
+      pointer-events: none;
+    }
+
+    .terminal {
+      background: #0a0c12;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      text-align: left;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .t-btn {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .t-btn-red   { background: #ff5f56; }
+    .t-btn-amber { background: #ffbd2e; }
+    .t-btn-green { background: #27c93f; }
+
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    .terminal-body {
+      padding: 20px 22px 24px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.75;
+    }
+
+    .t-prompt { color: var(--accent); }
+    .t-cmd    { color: #e2e8f0; }
+    .t-flag   { color: #f59e0b; }
+    .t-dim    { color: var(--text-dim); }
+    .t-green  { color: #34d399; }
+    .t-cyan   { color: #67e8f9; }
+    .t-yellow { color: #fbbf24; }
+    .t-red    { color: #f87171; }
+
+    .t-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 2px 0;
+    }
+
+    .t-label {
+      width: 68px;
+      flex-shrink: 0;
+      color: #94a3b8;
+    }
+
+    .t-bar-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .t-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), #67c7ff);
+      transition: width 0.4s ease;
+    }
+
+    .t-fraction { color: var(--text-muted); font-size: 11px; width: 60px; flex-shrink: 0; }
+    .t-stats    { color: var(--text-dim); font-size: 11px; }
+
+    /* ─────────────────────────────────────────────
+       Strip
+    ───────────────────────────────────────────── */
+    .strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .strip-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .strip-icon {
+      font-size: 16px;
+    }
+
+    .strip-item strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ─────────────────────────────────────────────
+       Sections common
+    ───────────────────────────────────────────── */
+    .section {
+      padding: 100px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 520px;
+      line-height: 1.65;
+    }
+
+    .section-header {
+      margin-bottom: 56px;
+    }
+
+    /* ─────────────────────────────────────────────
+       Feature grid
+    ───────────────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .feat-card {
+      background: var(--bg-card);
+      padding: 32px 28px;
+      transition: background 0.25s;
+      position: relative;
+    }
+
+    .feat-card:hover {
+      background: var(--bg-card-2);
+    }
+
+    .feat-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 0;
+      opacity: 0;
+      background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), var(--accent-glow2), transparent 60%);
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .feat-card:hover::after { opacity: 1; }
+
+    .feat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 18px;
+      flex-shrink: 0;
+    }
+
+    .feat-icon-blue   { background: rgba(29,155,240,0.12); }
+    .feat-icon-purple { background: rgba(139,92,246,0.12); }
+    .feat-icon-green  { background: rgba(16,185,129,0.12); }
+    .feat-icon-amber  { background: rgba(245,158,11,0.12); }
+    .feat-icon-red    { background: rgba(239,68,68,0.12); }
+    .feat-icon-cyan   { background: rgba(103,232,249,0.12); }
+
+    .feat-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .feat-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .feat-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .feat-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-family: var(--mono);
+    }
+
+    .feat-tag-blue   { background: rgba(29,155,240,0.12); color: #60c4ff; border: 1px solid rgba(29,155,240,0.2); }
+    .feat-tag-purple { background: rgba(139,92,246,0.12); color: #b794f4; border: 1px solid rgba(139,92,246,0.2); }
+    .feat-tag-green  { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+    .feat-tag-amber  { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
+
+    /* ─────────────────────────────────────────────
+       How it works
+    ───────────────────────────────────────────── */
+    .how-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: start;
+    }
+
+    .how-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .how-step {
+      display: flex;
+      gap: 18px;
+      cursor: pointer;
+      padding: 20px 20px;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+      border-left: 2px solid transparent;
+    }
+
+    .how-step.active {
+      background: rgba(29,155,240,0.06);
+      border-left-color: var(--accent);
+    }
+
+    .how-step:hover:not(.active) {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .how-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg-card-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-family: var(--mono);
+      margin-top: 1px;
+    }
+
+    .how-step.active .how-num {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .how-step-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      transition: color 0.2s;
+    }
+
+    .how-step.active .how-step-title { color: var(--text); }
+
+    .how-step-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      transition: color 0.2s;
+    }
+
+    .how-step.active .how-step-desc { color: var(--text-muted); }
+
+    .how-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: sticky;
+      top: 80px;
+    }
+
+    .how-panel-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .how-panel-title {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    .code-block {
+      padding: 20px 22px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .code-panel {
+      display: none;
+    }
+    .code-panel.active {
+      display: block;
+    }
+
+    /* ─────────────────────────────────────────────
+       Filter showcase
+    ───────────────────────────────────────────── */
+    .filter-showcase {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .filter-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .filter-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .filter-card-icon {
+      font-size: 24px;
+      margin-bottom: 14px;
+    }
+
+    .filter-card-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .filter-card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .filter-code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .filter-code .kw { color: var(--accent); }
+    .filter-code .val { color: #f59e0b; }
+    .filter-code .str { color: #34d399; }
+
+    /* ─────────────────────────────────────────────
+       CTA band
+    ───────────────────────────────────────────── */
+    .cta-band {
+      margin: 0 40px 80px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(29,155,240,0.1) 0%, rgba(139,92,246,0.08) 100%);
+      border: 1px solid rgba(29,155,240,0.18);
+      padding: 56px 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      flex-wrap: wrap;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-band::before {
+      content: "";
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(29,155,240,0.12), transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-title {
+      font-size: clamp(22px, 3vw, 28px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: var(--text);
+      max-width: 400px;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    /* ─────────────────────────────────────────────
+       Footer
+    ───────────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-dim);
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text-muted); }
+
+    .footer-copy {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ─────────────────────────────────────────────
+       Dividers
+    ───────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ─────────────────────────────────────────────
+       Mobile nav button + drawer
+    ───────────────────────────────────────────── */
+    .nav-mobile-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      color: var(--text);
+      flex-direction: column;
+      gap: 5px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .nav-mobile-btn:hover { background: rgba(255,255,255,0.08); }
+    .nav-mobile-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 2px;
+      transition: transform 0.25s, opacity 0.25s;
+    }
+    .nav-mobile-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-mobile-btn.open span:nth-child(2) { opacity: 0; }
+    .nav-mobile-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      inset: 0;
+      top: 62px;
+      background: rgba(9, 11, 17, 0.97);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 900;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 16px 24px 40px;
+      gap: 4px;
+      overflow-y: auto;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      transition: background 0.15s;
+    }
+    .mobile-menu a:hover { background: rgba(255,255,255,0.07); }
+    .mobile-menu .mm-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 12px 0;
+    }
+    .mobile-menu .mm-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .mobile-menu .btn {
+      text-align: center;
+      padding: 13px 20px;
+      font-size: 1rem;
+    }
+
+    /* ─────────────────────────────────────────────
+       Responsive
+    ───────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .how-grid { grid-template-columns: 1fr; }
+      .how-panel { position: static; }
+      .filter-showcase { grid-template-columns: 1fr; }
+      .cta-band { padding: 40px 32px; }
+      .nav-links { display: none; }
+      .nav-cta { display: none; }
+      .nav-mobile-btn { display: flex; }
+    }
+
+    @media (max-width: 640px) {
+      .nav { padding: 0 20px; }
+      .hero { padding: 110px 20px 72px; }
+      .hero h1 { font-size: clamp(2rem, 9vw, 3.2rem); }
+      .section { padding: 64px 20px; }
+      .strip { gap: 20px; padding: 18px 20px; flex-wrap: wrap; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .cta-band { margin: 0 16px 60px; padding: 32px 24px; }
+      .footer { padding: 24px 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
+      .terminal { font-size: 0.78rem; overflow-x: auto; }
+      .hero-terminal { overflow-x: auto; }
+    }
+
+    /* ─────────────────────────────────────────────
+       Scroll fade-in
+    ───────────────────────────────────────────── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ══════════════════════════════════════════
+     NAV
+══════════════════════════════════════════ -->
+<nav class="nav">
+  <a class="nav-logo" href="landing.html">
+    <!-- Logo mark -->
+    <svg class="nav-logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="8" fill="url(#navGrad)"/>
+      <defs>
+        <linearGradient id="navGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1d9bf0"/>
+          <stop offset="100%" stop-color="#1265b8"/>
+        </linearGradient>
+      </defs>
+      <path d="M8.5 8.5L23.5 23.5M23.5 8.5L8.5 23.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
+      <circle cx="21" cy="5.5" r="1.6" fill="white" opacity="0.55"/>
+    </svg>
+    <span class="nav-logo-text">twitter-cleaner</span>
+  </a>
+
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#filters">Filters</a>
+    <a href="index.html">Docs</a>
+  </div>
+
+  <div class="nav-cta">
+    <a href="https://github.com/mikelord007/twitter-cleaner" class="btn btn-ghost" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+    <a href="index.html" class="btn btn-primary">
+      Read the docs
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+  </div>
+
+  <button class="nav-mobile-btn" id="nav-mobile-btn" aria-label="Open menu" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#features" onclick="closeMobileMenu()">Features</a>
+  <a href="#how-it-works" onclick="closeMobileMenu()">How it works</a>
+  <a href="#filters" onclick="closeMobileMenu()">Filters</a>
+  <a href="index.html" onclick="closeMobileMenu()">Docs</a>
+  <div class="mm-divider"></div>
+  <div class="mm-cta">
+    <a href="https://github.com/mikelord007/twitter-cleaner" class="btn btn-ghost" target="_blank" rel="noopener" onclick="closeMobileMenu()">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+    <a href="index.html" class="btn btn-primary" onclick="closeMobileMenu()">
+      Read the docs
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      Open-source · MIT licensed
+    </div>
+
+    <h1>
+      Clean your<br/>
+      <span class="grad">X&nbsp;/&nbsp;Twitter history.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Bulk-delete tweets, retweets, replies, quotes, and likes directly from the browser —
+      no API key, no rate-limit headaches, no 3,200-post ceiling.
+    </p>
+
+    <div class="hero-actions">
+      <a href="index.html" class="btn btn-primary btn-hero">
+        Get started
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+      <a href="https://github.com/mikelord007/twitter-cleaner" class="btn-hero-outline btn" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <!-- Terminal demo -->
+    <div class="terminal-wrap">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="t-btn t-btn-red"></div>
+          <div class="t-btn t-btn-amber"></div>
+          <div class="t-btn t-btn-green"></div>
+          <span class="terminal-title">twitter-cleaner — zsh</span>
+        </div>
+        <div class="terminal-body">
+          <div><span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span> <span class="t-flag">--type</span> like <span class="t-flag">--before</span> 2022-01-01</div>
+          <br/>
+          <div class="t-bar-wrap">
+            <span class="t-label">Likes&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <div class="t-bar-track"><div class="t-bar-fill" id="bar1" style="width:0%"></div></div>
+            <span class="t-fraction" id="frac1">0/4821</span>
+            <span class="t-stats" id="stat1">&nbsp;0✓ 0✗ 0 skipped</span>
+          </div>
+          <div class="t-bar-wrap">
+            <span class="t-label">Overall&nbsp;&nbsp;</span>
+            <div class="t-bar-track"><div class="t-bar-fill" id="bar2" style="width:0%"></div></div>
+            <span class="t-fraction" id="frac2">0/4821</span>
+            <span class="t-stats" id="stat2">&nbsp;0✓ 0✗ 0 skipped</span>
+          </div>
+          <br/>
+          <div id="t-status" class="t-dim"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════
+     STRIP
+══════════════════════════════════════════ -->
+<div class="strip">
+  <div class="strip-item">
+    <span class="strip-icon">🔑</span>
+    <span><strong>No API key</strong> required</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-icon">📦</span>
+    <span><strong>Full archive</strong> support</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-icon">💾</span>
+    <span><strong>Resume</strong> where you left off</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-icon">🧠</span>
+    <span><strong>LLM-powered</strong> content filter</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-icon">🛡️</span>
+    <span>Built-in <strong>stealth mode</strong></span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     FEATURES
+══════════════════════════════════════════ -->
+<section class="section fade-up" id="features">
+  <div class="section-header">
+    <p class="section-label">Features</p>
+    <h2 class="section-title">Everything you need to<br/>wipe the slate clean.</h2>
+    <p class="section-sub">A focused CLI with no cruft — just the controls you need to surgically clean your history.</p>
+  </div>
+
+  <div class="feature-grid">
+
+    <!-- 1 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-blue">🗄️</div>
+      <div class="feat-title">Full archive support</div>
+      <div class="feat-desc">
+        Point it at your downloaded Twitter archive and process your entire history — all the way back to your first tweet, not just the last 3,200.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-blue">parse</span>
+        <span class="feat-tag feat-tag-blue">tweets.js</span>
+        <span class="feat-tag feat-tag-blue">like.js</span>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-purple">🖥️</div>
+      <div class="feat-title">Real browser, no API key</div>
+      <div class="feat-desc">
+        Uses Playwright with your installed Chrome — the same way you'd browse manually. Twitter sees a real user session, not a bot hitting API endpoints.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-purple">Playwright</span>
+        <span class="feat-tag feat-tag-purple">Chrome</span>
+        <span class="feat-tag feat-tag-purple">persistent session</span>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-green">🗑️</div>
+      <div class="feat-title">Five content types</div>
+      <div class="feat-desc">
+        Delete tweets, replies, quote tweets, undo retweets, and unlike posts — all from a single command. Mix and match with <code style="font-size:11px;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;color:#60c4ff">--type</code>.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-green">tweet</span>
+        <span class="feat-tag feat-tag-green">reply</span>
+        <span class="feat-tag feat-tag-green">quote</span>
+        <span class="feat-tag feat-tag-green">retweet</span>
+        <span class="feat-tag feat-tag-green">like</span>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-amber">📅</div>
+      <div class="feat-title">Date range filtering</div>
+      <div class="feat-desc">
+        Target a specific time window with <code style="font-size:11px;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;color:#60c4ff">--before</code> and <code style="font-size:11px;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;color:#60c4ff">--after</code>. Items outside the range stay pending so a future run without filters can still pick them up.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-amber">--before</span>
+        <span class="feat-tag feat-tag-amber">--after</span>
+        <span class="feat-tag feat-tag-amber">YYYY-MM-DD</span>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-purple">🧠</div>
+      <div class="feat-title">LLM content filter</div>
+      <div class="feat-desc">
+        Describe what to delete in plain English — "angry political tweets" or "self-promotional posts". Supports OpenAI, Anthropic, and OpenRouter (free tier available).
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-purple">OpenAI</span>
+        <span class="feat-tag feat-tag-purple">Anthropic</span>
+        <span class="feat-tag feat-tag-purple">OpenRouter</span>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-cyan">🛡️</div>
+      <div class="feat-title">Stealth mode</div>
+      <div class="feat-desc">
+        Auto-pauses for 3–6 minutes every 50 deletions, hovers before clicking, and patches browser fingerprints — so Twitter doesn't clock the session as automation.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-blue">--stealth</span>
+        <span class="feat-tag feat-tag-blue">rate-limit safe</span>
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-green">💾</div>
+      <div class="feat-title">Resume-safe progress</div>
+      <div class="feat-desc">
+        Every item is tracked in a local SQLite database. Kill the process, lose power, get rate-limited — pick up exactly where you left off next run.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-green">SQLite</span>
+        <span class="feat-tag feat-tag-green">status</span>
+        <span class="feat-tag feat-tag-green">reset</span>
+      </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-amber">👁️</div>
+      <div class="feat-title">Dry run mode</div>
+      <div class="feat-desc">
+        Pass <code style="font-size:11px;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;color:#60c4ff">--dry-run</code> and the browser navigates to each item, highlights what would be clicked, and shows you the full count — without deleting a single thing.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-amber">--dry-run</span>
+        <span class="feat-tag feat-tag-amber">preview</span>
+      </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="feat-card">
+      <div class="feat-icon feat-icon-blue">🔭</div>
+      <div class="feat-title">Live scraper</div>
+      <div class="feat-desc">
+        No archive? The <code style="font-size:11px;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;color:#60c4ff">scrape</code> command scrolls your live profile and loads found IDs directly into the database. Capped at ~3,200 by Twitter.
+      </div>
+      <div class="feat-tags">
+        <span class="feat-tag feat-tag-blue">scrape</span>
+        <span class="feat-tag feat-tag-blue">live profile</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════
+     HOW IT WORKS
+══════════════════════════════════════════ -->
+<hr class="divider"/>
+<section class="section fade-up" id="how-it-works">
+  <div class="section-header">
+    <p class="section-label">How it works</p>
+    <h2 class="section-title">Up and running<br/>in three steps.</h2>
+    <p class="section-sub">No tokens, no OAuth dance. Just your archive, a terminal, and a few minutes.</p>
+  </div>
+
+  <div class="how-grid">
+    <!-- Steps -->
+    <div class="how-steps">
+
+      <div class="how-step active" data-panel="0" onclick="selectStep(this,0)">
+        <div class="how-num">1</div>
+        <div>
+          <div class="how-step-title">Install &amp; configure</div>
+          <div class="how-step-desc">Clone the repo, install dependencies via pip, and drop your Twitter handle into a <code style="font-size:11px;color:#60c4ff">.env</code> file. That's the only required credential.</div>
+        </div>
+      </div>
+
+      <div class="how-step" data-panel="1" onclick="selectStep(this,1)">
+        <div class="how-num">2</div>
+        <div>
+          <div class="how-step-title">Load your history</div>
+          <div class="how-step-desc">Download your Twitter archive from account settings and run <code style="font-size:11px;color:#60c4ff">twitter-cleaner parse</code>. Tens of thousands of items load in seconds.</div>
+        </div>
+      </div>
+
+      <div class="how-step" data-panel="2" onclick="selectStep(this,2)">
+        <div class="how-num">3</div>
+        <div>
+          <div class="how-step-title">Preview, then delete</div>
+          <div class="how-step-desc">Always dry-run first to confirm what will be touched, then run <code style="font-size:11px;color:#60c4ff">delete</code> for real. Progress auto-saves so you can stop and resume anytime.</div>
+        </div>
+      </div>
+
+      <div class="how-step" data-panel="3" onclick="selectStep(this,3)">
+        <div class="how-num">4</div>
+        <div>
+          <div class="how-step-title">Check status &amp; retry</div>
+          <div class="how-step-desc">Run <code style="font-size:11px;color:#60c4ff">status</code> to see counts by type. Any failures? <code style="font-size:11px;color:#60c4ff">reset --status failed</code> re-queues them for another pass.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Code panel -->
+    <div class="how-panel">
+      <div class="how-panel-bar">
+        <div class="t-btn t-btn-red"></div>
+        <div class="t-btn t-btn-amber"></div>
+        <div class="t-btn t-btn-green"></div>
+        <span class="how-panel-title">terminal</span>
+      </div>
+
+      <div class="code-block">
+
+        <div class="code-panel active" id="panel-0">
+          <span class="t-dim"># 1. Install</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">pip install -e .</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">playwright install chrome</span><br/><br/>
+          <span class="t-dim"># 2. Configure .env</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">cp .env.example .env</span><br/>
+          <span class="t-dim"># add TWITTER_USERNAME=yourhandle</span>
+        </div>
+
+        <div class="code-panel" id="panel-1">
+          <span class="t-dim"># Parse your downloaded archive</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner parse</span> <span class="t-flag">--archive-dir</span> ./data<br/><br/>
+          <span class="t-green">Parsed 14,821 tweets/retweets/replies, 6,203 likes.</span><br/>
+          <span class="t-green">New records added: 21,024</span><br/><br/>
+          <span class="t-dim"># No archive? Scrape the live profile instead</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner scrape</span>
+        </div>
+
+        <div class="code-panel" id="panel-2">
+          <span class="t-dim"># Always preview first</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span> <span class="t-flag">--dry-run</span><br/><br/>
+          <span class="t-dim"># Then delete for real</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span><br/><br/>
+          <span class="t-dim"># Target specific types &amp; dates</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span> <span class="t-flag">--type</span> like <span class="t-flag">--before</span> <span class="t-yellow">2022-01-01</span>
+        </div>
+
+        <div class="code-panel" id="panel-3">
+          <span class="t-dim"># Check progress</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner status</span><br/><br/>
+          <span class="t-dim">  Type      Pending  Done  Failed  Skipped</span><br/>
+          <span class="t-dim">  ────────  ───────  ────  ──────  ───────</span><br/>
+          <span class="t-cmd">  tweet         0   9821       3      241</span><br/>
+          <span class="t-cmd">  like        412   5791       0        0</span><br/><br/>
+          <span class="t-dim"># Re-queue any failures</span><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner reset</span> <span class="t-flag">--status</span> failed
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════
+     FILTERS
+══════════════════════════════════════════ -->
+<hr class="divider"/>
+<section class="section fade-up" id="filters">
+  <div class="section-header">
+    <p class="section-label">Smart filtering</p>
+    <h2 class="section-title">Delete exactly what<br/>you mean to delete.</h2>
+    <p class="section-sub">Combine date ranges with LLM-powered content matching to surgically remove only the content you want gone.</p>
+  </div>
+
+  <div class="filter-showcase">
+
+    <div class="filter-card">
+      <div class="filter-card-icon">📅</div>
+      <div class="filter-card-title">Date range</div>
+      <div class="filter-card-desc">
+        Use <code style="font-size:11px;color:#60c4ff">--before</code> and <code style="font-size:11px;color:#60c4ff">--after</code> to target a specific window.
+        Items outside the range stay pending — run again without the flag to process them later.
+      </div>
+      <div class="filter-code">
+        <span class="kw">twitter-cleaner delete</span><br/>
+        &nbsp;&nbsp;<span class="val">--after</span> <span class="str">2020-01-01</span><br/>
+        &nbsp;&nbsp;<span class="val">--before</span> <span class="str">2022-06-01</span><br/>
+        &nbsp;&nbsp;<span class="val">--type</span> tweet
+      </div>
+    </div>
+
+    <div class="filter-card">
+      <div class="filter-card-icon">🧠</div>
+      <div class="filter-card-title">LLM content filter</div>
+      <div class="filter-card-desc">
+        Describe what to delete in plain English. An LLM reads each tweet and decides if it matches before the action runs. Combine with <code style="font-size:11px;color:#60c4ff">--dry-run</code> to preview selections.
+      </div>
+      <div class="filter-code">
+        <span class="kw">twitter-cleaner delete</span><br/>
+        &nbsp;&nbsp;<span class="val">--filter</span> <span class="str">"angry political tweets"</span><br/>
+        &nbsp;&nbsp;<span class="val">--llm-provider</span> openai<br/>
+        &nbsp;&nbsp;<span class="val">--dry-run</span>
+      </div>
+    </div>
+
+    <div class="filter-card">
+      <div class="filter-card-icon">🔀</div>
+      <div class="filter-card-title">Combined filters</div>
+      <div class="filter-card-desc">
+        Stack date ranges and LLM filters together. The date filter runs first (fast, no API calls), then the LLM only evaluates the remaining items.
+      </div>
+      <div class="filter-code">
+        <span class="kw">twitter-cleaner delete</span><br/>
+        &nbsp;&nbsp;<span class="val">--before</span> <span class="str">2021-01-01</span><br/>
+        &nbsp;&nbsp;<span class="val">--filter</span> <span class="str">"cringe content"</span><br/>
+        &nbsp;&nbsp;<span class="val">--llm-provider</span> anthropic
+      </div>
+    </div>
+
+    <div class="filter-card">
+      <div class="filter-card-icon">⚡</div>
+      <div class="filter-card-title">LLM providers</div>
+      <div class="filter-card-desc">
+        Bring your own key for OpenAI or Anthropic, or use OpenRouter which has a free tier — so content filtering costs nothing if you use the right model.
+      </div>
+      <div class="filter-code">
+        <span class="kw">--llm-provider</span> <span class="str">openai</span><br/>
+        <span class="kw">--llm-provider</span> <span class="str">anthropic</span><br/>
+        <span class="kw">--llm-provider</span> <span class="str">openrouter</span> <span class="val"># free tier</span><br/>
+        <span class="kw">--llm-model</span> <span class="str">MODEL_NAME</span> <span class="val"># optional</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════
+     CTA
+══════════════════════════════════════════ -->
+<div class="cta-band fade-up">
+  <div>
+    <div class="cta-title">Ready to start fresh?</div>
+    <p style="color:var(--text-muted);font-size:14px;margin-top:10px">Read the full docs to get set up in minutes.</p>
+  </div>
+  <div class="cta-actions">
+    <a href="https://github.com/mikelord007/twitter-cleaner" class="btn btn-ghost" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+    <a href="index.html" class="btn btn-primary btn-hero">
+      Read the docs
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-logo">
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="8" fill="url(#footerGrad)"/>
+      <defs>
+        <linearGradient id="footerGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1d9bf0"/>
+          <stop offset="100%" stop-color="#1265b8"/>
+        </linearGradient>
+      </defs>
+      <path d="M8.5 8.5L23.5 23.5M23.5 8.5L8.5 23.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
+    </svg>
+    twitter-cleaner
+  </div>
+
+  <div class="footer-links">
+    <a href="index.html">Docs</a>
+    <a href="https://github.com/mikelord007/twitter-cleaner" target="_blank" rel="noopener">GitHub</a>
+    <a href="index.html#faq">FAQ</a>
+  </div>
+
+  <div class="footer-copy">MIT License &nbsp;·&nbsp; Built with Playwright</div>
+</footer>
+
+
+<script>
+  /* ── Terminal animation ── */
+  const total = 4821;
+  let done = 0, failed = 0;
+  let animating = false;
+
+  function animateTerminal() {
+    if (animating) return;
+    animating = true;
+    done = 0; failed = 0;
+
+    const tick = setInterval(() => {
+      const step = Math.floor(Math.random() * 18) + 6;
+      if (Math.random() < 0.03) failed++;
+      else done += step;
+      if (done > total) done = total;
+
+      const pct = (done / total * 100).toFixed(1);
+      document.getElementById('bar1').style.width = pct + '%';
+      document.getElementById('bar2').style.width = pct + '%';
+      document.getElementById('frac1').textContent = done.toLocaleString() + '/' + total.toLocaleString();
+      document.getElementById('frac2').textContent = done.toLocaleString() + '/' + total.toLocaleString();
+      document.getElementById('stat1').textContent = ` ${done.toLocaleString()}✓ ${failed}✗ 0 skipped`;
+      document.getElementById('stat2').textContent = ` ${done.toLocaleString()}✓ ${failed}✗ 0 skipped`;
+
+      const status = document.getElementById('t-status');
+      if (done >= total) {
+        clearInterval(tick);
+        status.innerHTML = '<span style="color:#34d399">Done!</span>';
+        setTimeout(() => { done = 0; failed = 0; animating = false; animateTerminal(); }, 4000);
+      } else if (done > 0 && done % 1700 < step) {
+        const pause = Math.floor(Math.random() * 120) + 180;
+        status.innerHTML = `<span style="color:#67e8f9">Pausing ${pause}s after ${done.toLocaleString()} actions to avoid rate-limiting...</span>`;
+      } else {
+        status.textContent = '';
+      }
+    }, 60);
+  }
+
+  // Start once terminal enters view
+  const termObs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { animateTerminal(); termObs.disconnect(); }
+  }, { threshold: 0.4 });
+  termObs.observe(document.querySelector('.terminal-wrap'));
+
+
+  /* ── How-it-works step switcher ── */
+  function selectStep(el, idx) {
+    document.querySelectorAll('.how-step').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + idx).classList.add('active');
+  }
+
+
+  /* ── Scroll fade-in ── */
+  const fadeObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up').forEach(el => fadeObs.observe(el));
+
+
+  /* ── Card mouse-glow ── */
+  document.querySelectorAll('.feat-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+      card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+    });
+  });
+
+
+  /* ── Mobile menu ── */
+  function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const btn  = document.getElementById('nav-mobile-btn');
+    const open = menu.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  function closeMobileMenu() {
+    document.getElementById('mobile-menu').classList.remove('open');
+    const btn = document.getElementById('nav-mobile-btn');
+    btn.classList.remove('open');
+    btn.setAttribute('aria-label', 'Open menu');
+    document.body.style.overflow = '';
+  }
+
+  // Close mobile menu when clicking a hash link (nav was already closed but guard anchor clicks)
+  document.querySelectorAll('.mobile-menu a[href^="#"]').forEach(a => {
+    a.addEventListener('click', closeMobileMenu);
+  });
+</script>
+
+</body>
+</html>

@@ -12,8 +12,6 @@ load_dotenv()
 @dataclass
 class Config:
     username: str = field(default_factory=lambda: os.environ.get("TWITTER_USERNAME", ""))
-    password: str = field(default_factory=lambda: os.environ.get("TWITTER_PASSWORD", ""))
-    totp_secret: str = field(default_factory=lambda: os.environ.get("TWITTER_TOTP_SECRET", ""))
 
     archive_dir: Path = Path("data")
     state_dir: Path = Path(".twitter_cleaner")

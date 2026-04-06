@@ -3,62 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>twitter-cleaner docs</title>
+
+  <title>Docs — twitter-cleaner</title>
+  <meta name="description" content="Full documentation for twitter-cleaner: installation, commands, date filters, LLM content filtering, and troubleshooting." />
+  <meta property="og:title" content="twitter-cleaner — Documentation" />
+  <meta property="og:description" content="Full CLI reference for bulk-deleting your Twitter/X history." />
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d9bf0'/%3E%3Cpath d='M8 8L24 24M24 8L8 24' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='7' r='3' fill='white' opacity='0.95'/%3E%3Ccircle cx='21' cy='5' r='1.8' fill='white' opacity='0.6'/%3E%3C/svg%3E" />
+
   <style>
-    /* ── Variables ── */
+    /* ── Variables (light) ── */
     :root {
-      --bg: #ffffff;
-      --bg-subtle: #f6f8fa;
-      --bg-code: #f0f2f5;
-      --border: #d0d7de;
-      --text: #1c1c1e;
-      --text-muted: #57606a;
+      --bg: #f8fafc;
+      --bg-subtle: #f1f5f9;
+      --bg-code: #e8edf5;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a;
+      --text-muted: #475569;
       --accent: #1d9bf0;
-      --accent-dim: #e8f4fd;
-      --accent-hover: #0d8de0;
-      --tag-tweet: #dbeafe;
-      --tag-tweet-text: #1e40af;
-      --tag-like: #fce7f3;
+      --accent-dim: rgba(29,155,240,0.1);
+      --accent-hover: #1581cc;
+      --tag-tweet: rgba(29,155,240,0.1);
+      --tag-tweet-text: #1265b8;
+      --tag-like: rgba(236,72,153,0.1);
       --tag-like-text: #9d174d;
-      --tag-llm: #d1fae5;
+      --tag-llm: rgba(16,185,129,0.1);
       --tag-llm-text: #065f46;
-      --danger: #cf222e;
-      --warn-bg: #fff8c5;
-      --warn-border: #d4a72c;
-      --warn-text: #4d3800;
-      --tip-bg: #dff0ff;
+      --danger: #dc2626;
+      --warn-bg: #fefce8;
+      --warn-border: #ca8a04;
+      --warn-text: #713f12;
+      --tip-bg: rgba(29,155,240,0.07);
       --tip-border: #1d9bf0;
       --tip-text: #0a3a5c;
-      --sidebar-w: 240px;
-      --radius: 8px;
+      --sidebar-w: 248px;
+      --radius: 10px;
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      --transition: 0.2s ease;
+      --transition: 0.18s ease;
     }
 
+    /* ── Variables (dark — matches landing page) ── */
     [data-theme="dark"] {
-      --bg: #0d1117;
-      --bg-subtle: #161b22;
-      --bg-code: #1e2631;
-      --border: #30363d;
-      --text: #e6edf3;
-      --text-muted: #8b949e;
-      --accent: #58a6ff;
-      --accent-dim: #0d2340;
-      --accent-hover: #79bbff;
-      --tag-tweet: #1c2d4a;
-      --tag-tweet-text: #79b8ff;
-      --tag-like: #3a1a2e;
+      --bg: #07090f;
+      --bg-subtle: #0d1018;
+      --bg-code: #111520;
+      --border: rgba(255,255,255,0.07);
+      --text: #f0f4f8;
+      --text-muted: #7d8fa8;
+      --accent: #1d9bf0;
+      --accent-dim: rgba(29,155,240,0.1);
+      --accent-hover: #60c4ff;
+      --tag-tweet: rgba(29,155,240,0.12);
+      --tag-tweet-text: #60c4ff;
+      --tag-like: rgba(236,72,153,0.12);
       --tag-like-text: #f9a8d4;
-      --tag-llm: #0f2d1f;
+      --tag-llm: rgba(16,185,129,0.12);
       --tag-llm-text: #6ee7b7;
-      --danger: #ff7b72;
-      --warn-bg: #2d2000;
-      --warn-border: #9e6a03;
-      --warn-text: #f0c060;
-      --tip-bg: #0d2340;
-      --tip-border: #58a6ff;
-      --tip-text: #a5c8f0;
+      --danger: #f87171;
+      --warn-bg: rgba(245,158,11,0.08);
+      --warn-border: rgba(245,158,11,0.4);
+      --warn-text: #fcd34d;
+      --tip-bg: rgba(29,155,240,0.07);
+      --tip-border: rgba(29,155,240,0.35);
+      --tip-text: #93c5fd;
     }
 
     /* ── Reset ── */
@@ -88,7 +96,7 @@
       overflow-y: auto;
       background: var(--bg-subtle);
       border-right: 1px solid var(--border);
-      padding: 24px 0;
+      padding: 0 0 24px;
       display: flex;
       flex-direction: column;
       transition: background var(--transition), border-color var(--transition);
@@ -96,56 +104,81 @@
     }
 
     .sidebar-logo {
-      padding: 0 20px 24px;
+      padding: 18px 16px 18px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-decoration: none;
+      transition: background var(--transition);
     }
 
-    .sidebar-logo .logo-icon {
-      font-size: 22px;
-      margin-bottom: 4px;
+    .sidebar-logo:hover { background: var(--accent-dim); }
+
+    .sidebar-logo-mark {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
     }
 
-    .sidebar-logo h1 {
-      font-size: 15px;
+    .sidebar-logo-text h1 {
+      font-size: 13.5px;
       font-weight: 700;
       color: var(--text);
       font-family: var(--mono);
+      line-height: 1.2;
     }
 
-    .sidebar-logo p {
-      font-size: 11px;
+    .sidebar-logo-text p {
+      font-size: 10.5px;
       color: var(--text-muted);
-      margin-top: 2px;
+      margin-top: 1px;
     }
+
+    .sidebar-home-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-bottom: 4px;
+      transition: color var(--transition);
+    }
+    .sidebar-home-link:hover { color: var(--accent); }
 
     .nav-section-label {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       color: var(--text-muted);
-      padding: 8px 20px 4px;
+      padding: 12px 16px 4px;
+      opacity: 0.6;
     }
 
     .sidebar nav a {
       display: block;
-      padding: 5px 20px;
+      padding: 5px 16px;
       font-size: 13px;
       color: var(--text-muted);
       text-decoration: none;
       border-left: 2px solid transparent;
+      border-radius: 0 6px 6px 0;
       transition: color var(--transition), border-color var(--transition), background var(--transition);
     }
 
     .sidebar nav a:hover {
-      color: var(--accent);
+      color: var(--text);
       background: var(--accent-dim);
     }
 
     .sidebar nav a.active {
       color: var(--accent);
       border-left-color: var(--accent);
+      background: var(--accent-dim);
       font-weight: 600;
     }
 
@@ -161,19 +194,27 @@
       position: sticky;
       top: 0;
       z-index: 50;
+      background: rgba(7,9,15,0.0);  /* overridden per-theme below */
       background: var(--bg);
       border-bottom: 1px solid var(--border);
-      padding: 12px 48px;
+      padding: 10px 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
       transition: background var(--transition), border-color var(--transition);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    [data-theme="dark"] .topbar {
+      background: rgba(7,9,15,0.8);
     }
 
     .topbar-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .version-badge {
@@ -181,14 +222,17 @@
       font-size: 11px;
       background: var(--accent-dim);
       color: var(--accent);
-      border: 1px solid var(--accent);
+      border: 1px solid rgba(29,155,240,0.3);
       border-radius: 20px;
-      padding: 1px 8px;
+      padding: 2px 9px;
+      font-weight: 600;
     }
 
     .topbar-title {
       font-size: 13px;
+      font-weight: 600;
       color: var(--text-muted);
+      font-family: var(--mono);
     }
 
     /* ── Theme toggle ── */
@@ -196,7 +240,7 @@
       background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 4px;
+      padding: 3px;
       display: flex;
       gap: 2px;
       cursor: pointer;
@@ -209,15 +253,16 @@
       padding: 4px 10px;
       border-radius: 16px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-muted);
       transition: background var(--transition), color var(--transition);
+      font-family: var(--font);
     }
 
     .theme-toggle button.active {
       background: var(--bg);
       color: var(--text);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
 
     /* ── Content ── */
@@ -269,28 +314,56 @@
       background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 32px 36px;
-      margin-bottom: 40px;
+      padding: 36px 40px;
+      margin-bottom: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="dark"] .hero {
+      background: linear-gradient(135deg, rgba(29,155,240,0.06) 0%, rgba(13,16,24,0.8) 60%);
+      border-color: rgba(29,155,240,0.15);
+    }
+
+    [data-theme="dark"] .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, black, transparent);
+      -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, black, transparent);
+      pointer-events: none;
     }
 
     .hero h1 {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 800;
       font-family: var(--mono);
       color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    [data-theme="dark"] .hero h1 {
+      background: linear-gradient(135deg, #fff 0%, #a8d8f8 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .hero p {
-      font-size: 15px;
+      font-size: 14.5px;
       color: var(--text-muted);
-      margin-bottom: 20px;
+      margin-bottom: 22px;
+      max-width: 580px;
+      line-height: 1.65;
     }
 
     .hero-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 7px;
     }
 
     .tag {
@@ -299,20 +372,21 @@
       padding: 3px 10px;
       border-radius: 20px;
       border: 1px solid transparent;
+      font-family: var(--mono);
     }
 
-    .tag-blue { background: var(--tag-tweet); color: var(--tag-tweet-text); border-color: var(--tag-tweet-text); }
-    .tag-pink { background: var(--tag-like); color: var(--tag-like-text); border-color: var(--tag-like-text); }
-    .tag-green { background: var(--tag-llm); color: var(--tag-llm-text); border-color: var(--tag-llm-text); }
+    .tag-blue  { background: var(--tag-tweet); color: var(--tag-tweet-text); border-color: rgba(29,155,240,0.25); }
+    .tag-pink  { background: var(--tag-like);  color: var(--tag-like-text);  border-color: rgba(236,72,153,0.25); }
+    .tag-green { background: var(--tag-llm);   color: var(--tag-llm-text);   border-color: rgba(16,185,129,0.25); }
 
     /* ── Code blocks ── */
     pre {
       background: var(--bg-code);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px 20px;
+      padding: 18px 22px;
       overflow-x: auto;
-      margin: 12px 0;
+      margin: 14px 0;
       position: relative;
       transition: background var(--transition), border-color var(--transition);
     }
@@ -323,15 +397,16 @@
       color: var(--text);
       background: none;
       padding: 0;
+      border: none;
     }
 
     code {
       font-family: var(--mono);
-      font-size: 12.5px;
+      font-size: 12px;
       background: var(--bg-code);
       color: var(--accent);
-      padding: 1px 5px;
-      border-radius: 4px;
+      padding: 2px 6px;
+      border-radius: 5px;
       border: 1px solid var(--border);
       transition: background var(--transition);
     }
@@ -342,17 +417,18 @@
       right: 10px;
       background: var(--bg-subtle);
       border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: 3px 9px;
+      border-radius: 6px;
+      padding: 3px 10px;
       font-size: 11px;
       cursor: pointer;
       color: var(--text-muted);
       font-family: var(--font);
+      font-weight: 500;
       transition: background var(--transition), color var(--transition);
     }
 
     .copy-btn:hover { color: var(--text); background: var(--border); }
-    .copy-btn.copied { color: #2da44e; border-color: #2da44e; }
+    .copy-btn.copied { color: #34d399; border-color: #34d399; }
 
     /* syntax highlights */
     .c-comment { color: var(--text-muted); }
@@ -384,12 +460,14 @@
       border-radius: 50%;
       background: var(--accent);
       color: #fff;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-top: 2px;
+      font-family: var(--mono);
+      box-shadow: 0 0 0 3px var(--accent-dim);
     }
 
     .step-body {
@@ -408,16 +486,18 @@
       background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       overflow: hidden;
       transition: background var(--transition), border-color var(--transition);
     }
+
+    .cmd-card:hover { border-color: rgba(29,155,240,0.3); }
 
     .cmd-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 16px;
+      padding: 13px 16px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
       user-select: none;
@@ -892,7 +972,6 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
       justify-content: space-between;
       align-items: center;
       transition: background var(--transition);
@@ -925,36 +1004,138 @@
     /* ── footer ── */
     footer {
       border-top: 1px solid var(--border);
-      padding: 24px 48px;
+      padding: 24px 40px;
       font-size: 12px;
       color: var(--text-muted);
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-logo-inline {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .footer-logo-inline:hover { color: var(--accent); }
+
+    .footer-links-row {
+      display: flex;
+      gap: 20px;
+    }
+    .footer-links-row a {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+    .footer-links-row a:hover { color: var(--accent); }
+
+    /* ── Sidebar overlay (mobile) ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 150;
+      cursor: pointer;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ── Hamburger button ── */
+    .mobile-nav-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--text);
+      flex-direction: column;
+      gap: 5px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      margin-right: 8px;
+      transition: background 0.15s;
+    }
+    .mobile-nav-btn:hover { background: rgba(128,128,128,0.15); }
+    .mobile-nav-btn span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 2px;
     }
 
     /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .sidebar { width: 200px; }
+      .main { margin-left: 200px; }
+    }
+
     @media (max-width: 768px) {
-      .sidebar { display: none; }
+      /* Sidebar slides in/out on mobile */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 260px;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar.open { transform: translateX(0); }
       .main { margin-left: 0; }
-      .topbar { padding: 12px 20px; }
+      .mobile-nav-btn { display: flex; }
+      .topbar { padding: 12px 16px; }
+      .search-wrap { flex: 1; min-width: 0; }
       .content { padding: 32px 20px 60px; }
       .method-grid { grid-template-columns: 1fr; }
       .provider-grid { grid-template-columns: 1fr 1fr; }
       .workflow { gap: 6px; }
       .wf-arrow { display: none; }
     }
+
+    @media (max-width: 480px) {
+      .search-wrap { display: none; }
+      .theme-toggle button { padding: 4px 8px; font-size: 0.75rem; }
+      .provider-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
-<body data-theme="light">
+<body data-theme="dark">
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <div class="layout">
 
   <!-- ── Sidebar ── -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">🐦</div>
-      <h1>twitter-cleaner</h1>
-      <p>CLI documentation</p>
-    </div>
+  <aside class="sidebar" id="sidebar">
+    <a class="sidebar-logo" href="landing.html">
+      <svg class="sidebar-logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="url(#sbGrad)"/>
+        <defs>
+          <linearGradient id="sbGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1d9bf0"/>
+            <stop offset="100%" stop-color="#1265b8"/>
+          </linearGradient>
+        </defs>
+        <path d="M8.5 8.5L23.5 23.5M23.5 8.5L8.5 23.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
+        <circle cx="21" cy="5.5" r="1.6" fill="white" opacity="0.55"/>
+      </svg>
+      <div class="sidebar-logo-text">
+        <h1>twitter-cleaner</h1>
+        <p>CLI documentation</p>
+      </div>
+    </a>
     <nav id="sidebar-nav">
       <div class="nav-section-label">Getting Started</div>
       <a href="#overview">Overview</a>
@@ -987,6 +1168,9 @@
     <!-- Topbar -->
     <div class="topbar">
       <div class="topbar-left">
+        <button class="mobile-nav-btn" aria-label="Open navigation" onclick="toggleSidebar()">
+          <span></span><span></span><span></span>
+        </button>
         <span class="topbar-title">twitter-cleaner</span>
         <span class="version-badge">v0.1.0</span>
       </div>
@@ -1061,7 +1245,7 @@
             <div class="step-num">1</div>
             <div class="step-body">
               <h4>Clone the repository</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>git clone https://github.com/yourname/twitter-cleaner.git
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>git clone https://github.com/mikelord007/twitter-cleaner.git
 cd twitter-cleaner</code></pre>
             </div>
           </div>
@@ -1099,7 +1283,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
           <span class="section-icon">🔑</span>
           <h2>Configuration</h2>
         </div>
-        <p>Copy <code>.env.example</code> to <code>.env</code> and fill in your credentials. The tool reads these automatically at startup.</p>
+        <p>Copy <code>.env.example</code> to <code>.env</code>. The only required value is your username — login is handled manually in the browser window the tool opens.</p>
 
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cp .env.example .env</code></pre>
 
@@ -1108,25 +1292,9 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
             <code>TWITTER_USERNAME</code>
             <div>
               <div>Your Twitter/X handle (without @)</div>
-              <div class="env-item-desc">Used to build tweet URLs and navigate your profile</div>
+              <div class="env-item-desc">Used to build tweet URLs and navigate your profile. You log in manually the first time — the session is then saved and reused.</div>
             </div>
             <span class="env-item-req req">required</span>
-          </div>
-          <div class="env-item">
-            <code>TWITTER_PASSWORD</code>
-            <div>
-              <div>Your account password</div>
-              <div class="env-item-desc">Used for browser-based login</div>
-            </div>
-            <span class="env-item-req req">required</span>
-          </div>
-          <div class="env-item">
-            <code>TWITTER_TOTP_SECRET</code>
-            <div>
-              <div>Base32 TOTP secret for 2FA</div>
-              <div class="env-item-desc">Only needed if your account has two-factor authentication enabled</div>
-            </div>
-            <span class="env-item-req opt">optional</span>
           </div>
           <div class="env-item">
             <code>OPENAI_API_KEY</code>
@@ -1156,7 +1324,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
 
         <div class="alert alert-warn">
           <span class="alert-icon">⚠️</span>
-          <div>Never commit your <code>.env</code> file to version control. It contains your account password.</div>
+          <div>Never commit your <code>.env</code> file to version control. It contains your API keys.</div>
         </div>
       </section>
 
@@ -1369,7 +1537,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
           <span class="section-icon">🗑️</span>
           <h2>Delete</h2>
         </div>
-        <p>Once your data is loaded (via <code>parse</code> or <code>scrape</code>), run <code>delete</code>. The browser will open, log you in, and start processing items from the database.</p>
+        <p>Once your data is loaded (via <code>parse</code> or <code>scrape</code>), run <code>delete</code>. The browser will open — if you are not already logged in, sign in manually, then the tool will start processing items from the database.</p>
 
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">[--type TYPE]</span> <span class="c-flag">[OPTIONS]</span></code></pre>
 
@@ -1672,8 +1840,9 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
               <span class="tq-chevron">▼</span>
             </div>
             <div class="trouble-a">
-              <p>Twitter sometimes requires an extra verification step (email code, phone confirmation) that Playwright can't handle automatically. Run without <code>--headless</code> so you can see the browser, complete the verification manually, then let the tool continue.</p>
-              <p>If you use 2FA, set <code>TWITTER_TOTP_SECRET</code> in your <code>.env</code> — the tool will generate the OTP automatically.</p>
+              <p>Login is fully manual — the tool opens a real Chrome window and waits for you to sign in yourself. Enter your password, complete any 2FA or CAPTCHA prompts as you normally would, and the tool will detect when you're done and continue automatically.</p>
+              <p>Make sure you are <strong>not</strong> using <code>--headless</code> on the first run, otherwise the browser window is invisible and you cannot log in.</p>
+              <p>Once you are logged in, the session is saved to <code>.twitter_cleaner/chrome_profile/</code> and reused on all future runs — you should not need to log in again unless Twitter expires your session.</p>
             </div>
           </div>
 
@@ -1763,13 +1932,47 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
     </div><!-- /content -->
 
     <footer>
-      twitter-cleaner v0.1.0 &nbsp;·&nbsp; Python 3.11+ &nbsp;·&nbsp; Playwright-based browser automation
+      <a class="footer-logo-inline" href="landing.html">
+        <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="#1d9bf0"/>
+          <path d="M8.5 8.5L23.5 23.5M23.5 8.5L8.5 23.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
+        </svg>
+        twitter-cleaner
+      </a>
+      <div class="footer-links-row">
+        <a href="landing.html">Home</a>
+        <a href="https://github.com/mikelord007/twitter-cleaner" target="_blank" rel="noopener">GitHub</a>
+        <span style="color:var(--text-muted)">MIT License · Python 3.11+</span>
+      </div>
     </footer>
 
   </div><!-- /main -->
 </div><!-- /layout -->
 
 <script>
+  // ── Sidebar (mobile) ──
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const open = sidebar.classList.toggle('open');
+    overlay.classList.toggle('open', open);
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Close sidebar when clicking any nav link on mobile
+  document.querySelectorAll('.sidebar a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (window.innerWidth <= 768) closeSidebar();
+    });
+  });
+
   // ── Theme ──
   function setTheme(theme) {
     document.body.setAttribute('data-theme', theme);
@@ -1780,7 +1983,8 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
 
   (function () {
     const saved = localStorage.getItem('theme');
-    const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Default to dark to match the landing page; respect saved preference or system
+    const preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     setTheme(saved || preferred);
   })();
 
