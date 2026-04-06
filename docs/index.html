@@ -134,6 +134,7 @@
       font-size: 10.5px;
       color: var(--text-muted);
       margin-top: 1px;
+      margin-bottom: 0;
     }
 
     .sidebar-home-link {
@@ -1253,25 +1254,17 @@ cd twitter-cleaner</code></pre>
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
-              <h4>Create a virtual environment (Python 3.11+)</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>python -m venv .venv
-source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\activate</span></code></pre>
+              <h4>Run the installer (Python 3.11+)</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>python install.py</code></pre>
+              <p>This creates a virtual environment, installs the package, and installs the Playwright browser.</p>
             </div>
           </div>
 
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-body">
-              <h4>Install the package</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>pip install -e .</code></pre>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-num">4</div>
-            <div class="step-body">
-              <h4>Install Playwright browsers</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>playwright install chromium</code></pre>
+              <h4>Activate the virtual environment</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>source .venv/bin/activate   <span class="c-comment"># For Windows: .venv\Scripts\activate</span></code></pre>
             </div>
           </div>
         </div>
@@ -1376,11 +1369,11 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
           <div class="builder-field">
             <label>Types</label>
             <div class="checkbox-group">
-              <label><input type="checkbox" class="b-type" value="tweet" checked> Posts</label>
-              <label><input type="checkbox" class="b-type" value="reply" checked> Replies</label>
-              <label><input type="checkbox" class="b-type" value="quote" checked> Quotes</label>
-              <label><input type="checkbox" class="b-type" value="retweet" checked> Reposts</label>
-              <label><input type="checkbox" class="b-type" value="like" checked> Likes</label>
+              <label><input type="checkbox" class="b-type" value="tweets" checked> Posts</label>
+              <label><input type="checkbox" class="b-type" value="replies" checked> Replies</label>
+              <label><input type="checkbox" class="b-type" value="quotes" checked> Quotes</label>
+              <label><input type="checkbox" class="b-type" value="retweets" checked> Reposts</label>
+              <label><input type="checkbox" class="b-type" value="likes" checked> Likes</label>
             </div>
           </div>
 
@@ -1555,7 +1548,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
             <tr>
               <td>--type TYPE</td>
               <td>all</td>
-              <td>What to delete: <code>tweet</code>, <code>reply</code>, <code>quote</code>, <code>retweet</code>, <code>like</code>. Repeatable — pass multiple times. Omit to delete everything.</td>
+              <td>What to delete: <code>tweets</code>, <code>replies</code>, <code>quotes</code>, <code>retweets</code>, <code>likes</code>. Repeatable — pass multiple times. Omit to delete everything.</td>
             </tr>
             <tr>
               <td>--dry-run</td>
@@ -1623,13 +1616,13 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
 <span class="c-cmd">twitter-cleaner delete</span>
 
 <span class="c-comment"># Delete only likes</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> like
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> likes
 
 <span class="c-comment"># Delete only replies, before 2026</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> reply <span class="c-flag">--before</span> <span class="c-str">2026-01-01</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> replies <span class="c-flag">--before</span> <span class="c-str">2026-01-01</span>
 
 <span class="c-comment"># Delete tweets, replies and quotes — not retweets or likes</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> tweet <span class="c-flag">--type</span> reply <span class="c-flag">--type</span> quote
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> tweets <span class="c-flag">--type</span> replies <span class="c-flag">--type</span> quotes
 
 <span class="c-comment"># Delete everything, headlessly, with faster pacing</span>
 <span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--headless --min-delay</span> 1.5 <span class="c-flag">--max-delay</span> 3.0</code></pre>
@@ -1760,7 +1753,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
             <tr>
               <td>--type TYPE</td>
               <td>—</td>
-              <td>Only reset items of this type: <code>tweet</code>, <code>reply</code>, <code>retweet</code>, <code>quote</code>, or <code>like</code></td>
+              <td>Only reset items of this type: <code>tweets</code>, <code>replies</code>, <code>retweets</code>, <code>quotes</code>, or <code>likes</code></td>
             </tr>
             <tr>
               <td>--status STATUS</td>
@@ -1775,10 +1768,10 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
 <span class="c-cmd">twitter-cleaner reset</span>
 
 <span class="c-comment"># Re-queue only failed tweets</span>
-<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> tweet <span class="c-flag">--status</span> failed
+<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> tweets <span class="c-flag">--status</span> failed
 
 <span class="c-comment"># Re-queue skipped likes (e.g. to retry with different settings)</span>
-<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> like <span class="c-flag">--status</span> skipped
+<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> likes <span class="c-flag">--status</span> skipped
 
 <span class="c-comment"># Reset everything that was marked done (USE WITH CAUTION)</span>
 <span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
@@ -1803,7 +1796,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
 <span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">[OPTIONS]</span>
 
 <span class="c-comment"># Options:</span>
-  <span class="c-flag">--type</span> tweet|reply|quote|retweet|like  <span class="c-comment"># repeatable; default: all</span>
+  <span class="c-flag">--type</span> tweets|replies|quotes|retweets|likes  <span class="c-comment"># repeatable; default: all</span>
   <span class="c-flag">--dry-run</span>
   <span class="c-flag">--headless</span>
   <span class="c-flag">--no-stealth</span>             <span class="c-comment"># skip periodic long pauses (stealth on by default)</span>
@@ -1820,7 +1813,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
 <span class="c-cmd">twitter-cleaner status</span>
 
 <span class="c-cmd">twitter-cleaner reset</span>
-  <span class="c-flag">--type</span>   tweet|reply|retweet|quote|like
+  <span class="c-flag">--type</span>   tweets|replies|retweets|quotes|likes
   <span class="c-flag">--status</span> failed|skipped|done    <span class="c-comment"># default: failed</span></code></pre>
       </section>
 
@@ -2028,7 +2021,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
   sections.forEach(s => observer.observe(s));
 
   // ── Command Builder ──
-  const ALL_TYPES = ['tweet', 'reply', 'quote', 'retweet', 'like'];
+  const ALL_TYPES = ['tweets', 'replies', 'quotes', 'retweets', 'likes'];
 
   function buildCmd() {
     const dryRun = document.getElementById('b-dryrun').checked;

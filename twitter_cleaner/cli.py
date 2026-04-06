@@ -282,11 +282,20 @@ async def _run_scrape(do_tweets: bool, do_likes: bool, headless: bool) -> None:
 # delete command
 # ---------------------------------------------------------------------------
 
+_PLURAL_TO_SINGULAR = {
+    "tweets": "tweet",
+    "replies": "reply",
+    "quotes": "quote",
+    "retweets": "retweet",
+    "likes": "like",
+}
+
+
 @main.command("delete")
 @click.option(
     "--type", "types",
     multiple=True,
-    type=click.Choice(["tweet", "reply", "quote", "retweet", "like"], case_sensitive=False),
+    type=click.Choice(["tweets", "replies", "quotes", "retweets", "likes"], case_sensitive=False),
     help="Types to delete. Repeatable. Defaults to all five if omitted.",
 )
 @_common_delete_options
@@ -298,7 +307,7 @@ def delete(
     cfg = _build_config(headless, dry_run, min_delay, max_delay, stealth=stealth)
     dt_before, dt_after = _parse_date_range(before_date, after_date)
     llm = _build_llm_filter(llm_provider, llm_api_key, llm_description, llm_model)
-    item_types = list(types) if types else None
+    item_types = [_PLURAL_TO_SINGULAR[t.lower()] for t in types] if types else None
     asyncio.run(_run_delete(cfg, item_types=item_types,
                             before_date=dt_before, after_date=dt_after,
                             llm_filter=llm, llm_description=llm_description or ""))
@@ -385,7 +394,7 @@ def status():
     "--type",
     "item_type",
     default=None,
-    type=click.Choice(["tweet", "reply", "retweet", "quote", "like"]),
+    type=click.Choice(["tweets", "replies", "retweets", "quotes", "likes"]),
     help="Only reset items of this type.",
 )
 @click.option(
@@ -413,7 +422,7 @@ def reset(item_type: str | None, from_status: str):
 
     try:
         db = ProgressDB(db_path)
-        count = db.reset_status(item_type, from_status)
+        count = db.reset_status(_PLURAL_TO_SINGULAR[item_type] if item_type else None, from_status)
         db.close()
     except sqlite3.OperationalError as e:
         raise click.ClickException(
