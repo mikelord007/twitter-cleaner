@@ -33,12 +33,10 @@ playwright install chromium
 Copy `.env.example` to `.env` and fill in your details:
 
 ```env
-TWITTER_USERNAME=your_handle
-TWITTER_PASSWORD=your_password
-TWITTER_TOTP_SECRET=BASE32SECRET_IF_2FA_ENABLED   # optional
+TWITTER_USERNAME=your_handle   # required — used to build tweet URLs
 ```
 
-> The TOTP secret is the Base32 string you get when setting up an authenticator app (not the 6-digit code). Leave it blank if you don't use 2FA.
+> Optionally add LLM API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `OPENROUTER_API_KEY`) if you want to use `--filter` to target specific tweets by content.
 
 ---
 
@@ -110,12 +108,15 @@ twitter-cleaner delete
 Use `--type` (repeatable) to target specific categories:
 
 ```bash
-twitter-cleaner delete --type tweets     # tweets, replies, retweets, quotes
+twitter-cleaner delete --type tweets     # original tweets only
 twitter-cleaner delete --type likes      # unlike all liked tweets
 twitter-cleaner delete --type tweets --type likes
+twitter-cleaner delete --type tweets --type replies --type retweets --type quotes  # everything except likes
 ```
 
 Available types: `tweets`, `replies`, `quotes`, `retweets`, `likes`
+
+Omitting `--type` entirely deletes all five types.
 
 ### Dry run (test without deleting)
 
@@ -222,7 +223,7 @@ twitter-cleaner status
 twitter-cleaner reset --status failed
 
 # Re-queue skipped items (if you want to retry unavailable ones)
-twitter-cleaner reset --status skipped --type tweet
+twitter-cleaner reset --status skipped --type tweets
 ```
 
 ---
