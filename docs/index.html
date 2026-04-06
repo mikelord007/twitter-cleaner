@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>twitter-cleaner docs</title>
+  <style>
+    /* ── Variables ── */
+    :root {
+      --bg: #ffffff;
+      --bg-subtle: #f6f8fa;
+      --bg-code: #f0f2f5;
+      --border: #d0d7de;
+      --text: #1c1c1e;
+      --text-muted: #57606a;
+      --accent: #1d9bf0;
+      --accent-dim: #e8f4fd;
+      --accent-hover: #0d8de0;
+      --tag-tweet: #dbeafe;
+      --tag-tweet-text: #1e40af;
+      --tag-like: #fce7f3;
+      --tag-like-text: #9d174d;
+      --tag-llm: #d1fae5;
+      --tag-llm-text: #065f46;
+      --danger: #cf222e;
+      --warn-bg: #fff8c5;
+      --warn-border: #d4a72c;
+      --warn-text: #4d3800;
+      --tip-bg: #dff0ff;
+      --tip-border: #1d9bf0;
+      --tip-text: #0a3a5c;
+      --sidebar-w: 240px;
+      --radius: 8px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --transition: 0.2s ease;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --bg-subtle: #161b22;
+      --bg-code: #1e2631;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-dim: #0d2340;
+      --accent-hover: #79bbff;
+      --tag-tweet: #1c2d4a;
+      --tag-tweet-text: #79b8ff;
+      --tag-like: #3a1a2e;
+      --tag-like-text: #f9a8d4;
+      --tag-llm: #0f2d1f;
+      --tag-llm-text: #6ee7b7;
+      --danger: #ff7b72;
+      --warn-bg: #2d2000;
+      --warn-border: #9e6a03;
+      --warn-text: #f0c060;
+      --tip-bg: #0d2340;
+      --tip-border: #58a6ff;
+      --tip-text: #a5c8f0;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+      background: var(--bg-subtle);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      transition: background var(--transition), border-color var(--transition);
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .sidebar-logo .logo-icon {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-logo h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+
+    .sidebar-logo p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 8px 20px 4px;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 5px 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+
+    .sidebar nav a:hover {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .sidebar nav a.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── Main ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: 1px 8px;
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px;
+      display: flex;
+      gap: 2px;
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .theme-toggle button {
+      background: none;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .theme-toggle button.active {
+      background: var(--bg);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    /* ── Content ── */
+    .content {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 48px 48px 80px;
+    }
+
+    /* ── Sections ── */
+    .section {
+      margin-bottom: 60px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      font-size: 20px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 28px 0 10px;
+    }
+
+    p {
+      color: var(--text);
+      margin-bottom: 12px;
+      font-size: 14.5px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 36px;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      font-family: var(--mono);
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+    }
+
+    .tag-blue { background: var(--tag-tweet); color: var(--tag-tweet-text); border-color: var(--tag-tweet-text); }
+    .tag-pink { background: var(--tag-like); color: var(--tag-like-text); border-color: var(--tag-like-text); }
+    .tag-green { background: var(--tag-llm); color: var(--tag-llm-text); border-color: var(--tag-llm-text); }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 12px 0;
+      position: relative;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    pre code {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      background: none;
+      padding: 0;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: var(--bg-code);
+      color: var(--accent);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 9px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-family: var(--font);
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .copy-btn:hover { color: var(--text); background: var(--border); }
+    .copy-btn.copied { color: #2da44e; border-color: #2da44e; }
+
+    /* syntax highlights */
+    .c-comment { color: var(--text-muted); }
+    .c-flag { color: #e3b341; }
+    [data-theme="dark"] .c-flag { color: #e3b341; }
+    .c-cmd { color: var(--accent); }
+    .c-str { color: #a5d6ff; }
+    [data-theme="light"] .c-str { color: #0a7abf; }
+    .c-env { color: #7ee787; }
+    [data-theme="light"] .c-env { color: #116329; }
+
+    /* ── Steps ── */
+    .steps {
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+
+    .step-body {
+      flex: 1;
+    }
+
+    .step-body h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    /* ── Command cards ── */
+    .cmd-card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .cmd-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      transition: background var(--transition);
+    }
+
+    .cmd-header:hover { background: var(--accent-dim); }
+
+    .cmd-name {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--accent);
+      flex: 1;
+    }
+
+    .cmd-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .cmd-chevron {
+      color: var(--text-muted);
+      font-size: 11px;
+      transition: transform 0.2s;
+    }
+
+    .cmd-card.open .cmd-chevron { transform: rotate(180deg); }
+
+    .cmd-body {
+      display: none;
+      padding: 16px;
+    }
+
+    .cmd-card.open .cmd-body { display: block; }
+
+    /* ── Options table ── */
+    .opts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .opts-table th {
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .opts-table td {
+      padding: 8px 10px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .opts-table tr:last-child td { border-bottom: none; }
+
+    .opts-table td:first-child {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .opts-table td:nth-child(2) {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    /* ── Alert boxes ── */
+    .alert {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin: 16px 0;
+      font-size: 13.5px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .alert-icon { flex-shrink: 0; font-size: 16px; }
+
+    .alert-warn {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: var(--warn-text);
+    }
+
+    .alert-tip {
+      background: var(--tip-bg);
+      border: 1px solid var(--tip-border);
+      color: var(--tip-text);
+    }
+
+    /* ── Method cards (parse vs scrape) ── */
+    .method-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .method-card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .method-card h4 {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .method-card ul {
+      padding-left: 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .method-card ul li { color: var(--text); }
+    .method-card ul li span { color: var(--text-muted); }
+
+    /* ── LLM provider grid ── */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .provider-card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .provider-card .prov-icon { font-size: 24px; margin-bottom: 6px; }
+    .provider-card h5 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .provider-card p { font-size: 11.5px; color: var(--text-muted); margin: 0; }
+
+    /* ── Env var list ── */
+    .env-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .env-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    .env-item code {
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .env-item-desc { color: var(--text-muted); font-size: 12.5px; }
+    .env-item-req { font-size: 10.5px; font-weight: 700; border-radius: 10px; padding: 1px 7px; }
+    .req { background: #fde8e8; color: var(--danger); border: 1px solid var(--danger); }
+    [data-theme="dark"] .req { background: #3a0d0d; }
+    .opt { background: var(--tag-llm); color: var(--tag-llm-text); border: 1px solid var(--tag-llm-text); }
+
+    /* ── Workflow ── */
+    .workflow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .wf-step {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      min-width: 110px;
+    }
+
+    .wf-step small {
+      display: block;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .wf-arrow {
+      color: var(--text-muted);
+      font-size: 18px;
+      padding: 0 6px;
+    }
+
+    /* ── Search ── */
+    .search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 12px 5px 30px;
+      font-size: 12.5px;
+      color: var(--text);
+      width: 180px;
+      outline: none;
+      transition: border-color var(--transition), width var(--transition), background var(--transition);
+      font-family: var(--font);
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      width: 240px;
+    }
+
+    .search-input::placeholder { color: var(--text-muted); }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-results {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      width: 300px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 200;
+      overflow: hidden;
+    }
+
+    .search-results.visible { display: block; }
+
+    .search-result-item {
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background var(--transition);
+    }
+
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--accent-dim); color: var(--accent); }
+    .search-result-item .sr-icon { font-size: 14px; flex-shrink: 0; }
+    .search-result-item .sr-title { font-weight: 600; }
+    .search-result-item .sr-snippet { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-no-results { padding: 14px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+    mark {
+      background: #fff176;
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+
+    [data-theme="dark"] mark { background: #7c6d00; }
+
+    /* ── Command Builder ── */
+    .builder-form {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .builder-field {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      align-items: start;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .builder-field label:first-child {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-top: 4px;
+    }
+
+    .radio-group, .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .radio-group label, .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .radio-group label:has(input:checked),
+    .checkbox-group label:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .radio-group input, .checkbox-group input {
+      accent-color: var(--accent);
+    }
+
+    .date-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .date-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+    }
+
+    .date-group span { color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+
+    .builder-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: var(--font);
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .builder-input:focus { border-color: var(--accent); }
+    input[type="date"].builder-input { font-family: var(--mono); color-scheme: light dark; }
+
+    .slider-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+
+    .slider-group span { color: var(--text-muted); min-width: 68px; }
+    .slider-group input[type="range"] { width: 100px; accent-color: var(--accent); cursor: pointer; }
+
+    .llm-sub {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .builder-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: var(--font);
+      outline: none;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .builder-select:focus { border-color: var(--accent); }
+
+    .builder-output {
+      background: var(--bg-code);
+      padding: 16px 20px;
+      position: relative;
+    }
+
+    .builder-output-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .builder-output pre {
+      margin: 0;
+      background: var(--bg-code);
+      border: none;
+      padding: 0;
+    }
+
+    .builder-output .copy-btn {
+      position: static;
+      margin-top: 10px;
+      display: inline-block;
+    }
+
+    /* ── Troubleshooting ── */
+    .trouble-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .trouble-item {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trouble-item:last-child { border-bottom: none; }
+
+    .trouble-q {
+      padding: 14px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background var(--transition);
+      user-select: none;
+    }
+
+    .trouble-q:hover { background: var(--accent-dim); }
+
+    .trouble-q .tq-chevron {
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .trouble-item.open .tq-chevron { transform: rotate(180deg); }
+
+    .trouble-a {
+      display: none;
+      padding: 0 18px 16px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .trouble-item.open .trouble-a { display: block; }
+    .trouble-a p { color: var(--text-muted); font-size: 13.5px; margin-bottom: 8px; }
+    .trouble-a p:last-child { margin-bottom: 0; }
+
+    /* ── footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 48px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .topbar { padding: 12px 20px; }
+      .content { padding: 32px 20px 60px; }
+      .method-grid { grid-template-columns: 1fr; }
+      .provider-grid { grid-template-columns: 1fr 1fr; }
+      .workflow { gap: 6px; }
+      .wf-arrow { display: none; }
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🐦</div>
+      <h1>twitter-cleaner</h1>
+      <p>CLI documentation</p>
+    </div>
+    <nav id="sidebar-nav">
+      <div class="nav-section-label">Getting Started</div>
+      <a href="#overview">Overview</a>
+      <a href="#install">Installation</a>
+      <a href="#config">Configuration</a>
+
+      <div class="nav-section-label">Usage</div>
+      <a href="#builder">Command Builder</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#parse">Parse archive</a>
+      <a href="#scrape">Live scrape</a>
+      <a href="#delete">Delete</a>
+      <a href="#delete-examples">Examples</a>
+
+      <div class="nav-section-label">Filtering</div>
+      <a href="#date-filter">Date filters</a>
+      <a href="#llm-filter">LLM filters</a>
+
+      <div class="nav-section-label">Management</div>
+      <a href="#status">Status</a>
+      <a href="#reset">Reset</a>
+      <a href="#all-commands">All commands</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+    </nav>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title">twitter-cleaner</span>
+        <span class="version-badge">v0.1.0</span>
+      </div>
+      <div class="search-wrap" id="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="search-input" type="text" placeholder="Search docs…" autocomplete="off" spellcheck="false">
+        <div class="search-results" id="search-results"></div>
+      </div>
+      <div class="theme-toggle" id="theme-toggle">
+        <button id="btn-light" class="active" onclick="setTheme('light')">☀ Light</button>
+        <button id="btn-dark" onclick="setTheme('dark')">☾ Dark</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- Hero -->
+      <div class="hero">
+        <h1>twitter-cleaner</h1>
+        <p>Delete your entire Twitter/X history — tweets, retweets, replies, quotes, and likes — via browser automation. No API key needed.</p>
+        <div class="hero-tags">
+          <span class="tag tag-blue">Playwright-based</span>
+          <span class="tag tag-pink">No API key required</span>
+          <span class="tag tag-green">Archive + live scrape</span>
+          <span class="tag tag-blue">LLM content filtering</span>
+          <span class="tag tag-green">SQLite progress tracking</span>
+          <span class="tag tag-pink">Dry-run safe</span>
+        </div>
+      </div>
+
+      <!-- Overview -->
+      <section class="section" id="overview">
+        <div class="section-header">
+          <span class="section-icon">📖</span>
+          <h2>Overview</h2>
+        </div>
+        <p>twitter-cleaner automates the deletion of your Twitter/X history by controlling a real browser with Playwright. It tracks progress in a local SQLite database so you can safely pause and resume at any time.</p>
+        <p>There are two ways to feed it your data: parsing a <strong>downloaded archive</strong> (full history) or <strong>live-scraping</strong> your profile (last ~3200 tweets). Once loaded, you can filter by date range or use an LLM to target specific content before deleting.</p>
+
+        <div class="method-grid">
+          <div class="method-card">
+            <h4>📦 Archive (recommended)</h4>
+            <ul>
+              <li>Full tweet history — all time</li>
+              <li>Works offline once parsed</li>
+              <li>Includes all types: tweets, replies, retweets, quotes, likes</li>
+              <li><span>Takes ~minutes to download from Twitter</span></li>
+            </ul>
+          </div>
+          <div class="method-card">
+            <h4>🌐 Live Scrape</h4>
+            <ul>
+              <li>No archive download needed</li>
+              <li>Limited to last ~3200 tweets by Twitter</li>
+              <li>Useful for quick recent cleanup</li>
+              <li><span>Slower — requires active browser session</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Install -->
+      <section class="section" id="install">
+        <div class="section-header">
+          <span class="section-icon">⚙️</span>
+          <h2>Installation</h2>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>Clone the repository</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>git clone https://github.com/yourname/twitter-cleaner.git
+cd twitter-cleaner</code></pre>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>Create a virtual environment (Python 3.11+)</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>python -m venv .venv
+source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\activate</span></code></pre>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>Install the package</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>pip install -e .</code></pre>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>Install Playwright browsers</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>playwright install chromium</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Config -->
+      <section class="section" id="config">
+        <div class="section-header">
+          <span class="section-icon">🔑</span>
+          <h2>Configuration</h2>
+        </div>
+        <p>Copy <code>.env.example</code> to <code>.env</code> and fill in your credentials. The tool reads these automatically at startup.</p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cp .env.example .env</code></pre>
+
+        <div class="env-list">
+          <div class="env-item">
+            <code>TWITTER_USERNAME</code>
+            <div>
+              <div>Your Twitter/X handle (without @)</div>
+              <div class="env-item-desc">Used to build tweet URLs and navigate your profile</div>
+            </div>
+            <span class="env-item-req req">required</span>
+          </div>
+          <div class="env-item">
+            <code>TWITTER_PASSWORD</code>
+            <div>
+              <div>Your account password</div>
+              <div class="env-item-desc">Used for browser-based login</div>
+            </div>
+            <span class="env-item-req req">required</span>
+          </div>
+          <div class="env-item">
+            <code>TWITTER_TOTP_SECRET</code>
+            <div>
+              <div>Base32 TOTP secret for 2FA</div>
+              <div class="env-item-desc">Only needed if your account has two-factor authentication enabled</div>
+            </div>
+            <span class="env-item-req opt">optional</span>
+          </div>
+          <div class="env-item">
+            <code>OPENAI_API_KEY</code>
+            <div>
+              <div>OpenAI API key</div>
+              <div class="env-item-desc">Only needed if using <code>--llm-provider openai</code></div>
+            </div>
+            <span class="env-item-req opt">optional</span>
+          </div>
+          <div class="env-item">
+            <code>ANTHROPIC_API_KEY</code>
+            <div>
+              <div>Anthropic API key</div>
+              <div class="env-item-desc">Only needed if using <code>--llm-provider anthropic</code></div>
+            </div>
+            <span class="env-item-req opt">optional</span>
+          </div>
+          <div class="env-item">
+            <code>OPENROUTER_API_KEY</code>
+            <div>
+              <div>OpenRouter API key</div>
+              <div class="env-item-desc">Only needed if using <code>--llm-provider openrouter</code> (has a free tier)</div>
+            </div>
+            <span class="env-item-req opt">optional</span>
+          </div>
+        </div>
+
+        <div class="alert alert-warn">
+          <span class="alert-icon">⚠️</span>
+          <div>Never commit your <code>.env</code> file to version control. It contains your account password.</div>
+        </div>
+      </section>
+
+      <!-- Workflow -->
+      <section class="section" id="workflow">
+        <div class="section-header">
+          <span class="section-icon">🔄</span>
+          <h2>Typical Workflow</h2>
+        </div>
+        <p>The general flow is: load your data → optionally filter → delete → check status.</p>
+
+        <div class="workflow">
+          <div class="wf-step">
+            <code>parse</code> or <code>scrape</code>
+            <small>Load tweet IDs into DB</small>
+          </div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step">
+            <code>delete</code>
+            <small>+ optional --type</small>
+          </div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step">
+            <code>status</code>
+            <small>Check progress</small>
+          </div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step">
+            <code>reset</code>
+            <small>Retry failures</small>
+          </div>
+        </div>
+
+        <div class="alert alert-tip">
+          <span class="alert-icon">💡</span>
+          <div>Always run <code>--dry-run</code> first to preview what will be deleted without taking any action.</div>
+        </div>
+      </section>
+
+      <!-- Command Builder -->
+      <section class="section" id="builder">
+        <div class="section-header">
+          <span class="section-icon">🔧</span>
+          <h2>Command Builder</h2>
+        </div>
+        <p>Pick your options and get a ready-to-run command.</p>
+
+        <div class="builder-form">
+          <div class="builder-field">
+            <label>Types</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" class="b-type" value="tweet" checked> Posts</label>
+              <label><input type="checkbox" class="b-type" value="reply" checked> Replies</label>
+              <label><input type="checkbox" class="b-type" value="quote" checked> Quotes</label>
+              <label><input type="checkbox" class="b-type" value="retweet" checked> Reposts</label>
+              <label><input type="checkbox" class="b-type" value="like" checked> Likes</label>
+            </div>
+          </div>
+
+          <div class="builder-field">
+            <label>Options</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="b-dryrun"> Dry run</label>
+              <label><input type="checkbox" id="b-headless"> Headless</label>
+            </div>
+          </div>
+
+          <div class="builder-field">
+            <label>Date range</label>
+            <div class="date-row">
+              <div class="date-group">
+                <span>After</span>
+                <input type="date" id="b-after" class="builder-input">
+              </div>
+              <div class="date-group">
+                <span>Before</span>
+                <input type="date" id="b-before" class="builder-input">
+              </div>
+            </div>
+          </div>
+
+          <div class="builder-field">
+            <label>Delay (sec)</label>
+            <div class="slider-row">
+              <div class="slider-group">
+                <span>Min: <strong id="b-mindelay-val">3.0</strong>s</span>
+                <input type="range" id="b-mindelay" min="0.5" max="10" step="0.5" value="3.0">
+              </div>
+              <div class="slider-group">
+                <span>Max: <strong id="b-maxdelay-val">6.0</strong>s</span>
+                <input type="range" id="b-maxdelay" min="1" max="15" step="0.5" value="6.0">
+              </div>
+            </div>
+          </div>
+
+          <div class="builder-field">
+            <label>LLM filter</label>
+            <div>
+              <input type="text" id="b-filter" class="builder-input" placeholder='e.g. "angry political tweets"' style="width:100%;max-width:380px">
+              <div class="llm-sub" id="b-llm-sub" style="display:none">
+                <select id="b-provider" class="builder-select">
+                  <option value="openai">openai</option>
+                  <option value="anthropic">anthropic</option>
+                  <option value="openrouter">openrouter</option>
+                </select>
+                <input type="text" id="b-model" class="builder-input" placeholder="model (optional)" style="width:200px">
+              </div>
+            </div>
+          </div>
+
+          <div class="builder-output">
+            <div class="builder-output-label">Generated command</div>
+            <pre><code id="b-output"></code></pre>
+            <button class="copy-btn" id="b-copy-btn" onclick="copyBuilderCmd()">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Parse -->
+      <section class="section" id="parse">
+        <div class="section-header">
+          <span class="section-icon">📦</span>
+          <h2>Method 1 — Parse Archive</h2>
+        </div>
+        <p>The recommended approach for deleting your full history. Twitter lets you download your entire archive from <strong>Settings → Your account → Download an archive of your data</strong>. This can take 24–48 hours to prepare.</p>
+        <p>Once downloaded, extract the archive and point the tool at the folder containing <code>tweets.js</code>, <code>like.js</code>, etc.</p>
+
+        <h3>Command</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> <span class="c-str">./twitter-archive/data</span></code></pre>
+
+        <h3>Options</h3>
+        <table class="opts-table">
+          <thead>
+            <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--archive-dir PATH</td>
+              <td>data</td>
+              <td>Directory containing your archive data files (<code>tweets.js</code>, <code>like.js</code>, etc.)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Example</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Default — looks for archive data in ./data</span>
+<span class="c-cmd">twitter-cleaner parse</span>
+
+<span class="c-comment"># Custom archive path</span>
+<span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> ~/Downloads/twitter-2024/data</code></pre>
+
+        <p style="margin-top:12px">After parsing, check how many records were loaded:</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner status</span></code></pre>
+      </section>
+
+      <!-- Scrape -->
+      <section class="section" id="scrape">
+        <div class="section-header">
+          <span class="section-icon">🌐</span>
+          <h2>Method 2 — Live Scrape</h2>
+        </div>
+        <p>Scrapes your live Twitter profile directly instead of using a downloaded archive. Useful if you don't have an archive or only want to clean up recent activity.</p>
+
+        <div class="alert alert-warn">
+          <span class="alert-icon">⚠️</span>
+          <div>Twitter limits profile visibility to the last ~3200 tweets. Use the archive method for full history.</div>
+        </div>
+
+        <h3>Command</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner scrape</span></code></pre>
+
+        <h3>Options</h3>
+        <table class="opts-table">
+          <thead>
+            <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--tweets / --no-tweets</td>
+              <td>on</td>
+              <td>Scrape the tweets and replies tabs</td>
+            </tr>
+            <tr>
+              <td>--likes / --no-likes</td>
+              <td>on</td>
+              <td>Scrape the likes tab</td>
+            </tr>
+            <tr>
+              <td>--headless / --no-headless</td>
+              <td>off</td>
+              <td>Run the browser in headless mode (no visible window)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Examples</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Scrape both tweets and likes (default)</span>
+<span class="c-cmd">twitter-cleaner scrape</span>
+
+<span class="c-comment"># Only scrape tweets, skip likes</span>
+<span class="c-cmd">twitter-cleaner scrape</span> <span class="c-flag">--no-likes</span>
+
+<span class="c-comment"># Run headlessly in the background</span>
+<span class="c-cmd">twitter-cleaner scrape</span> <span class="c-flag">--headless</span></code></pre>
+      </section>
+
+      <!-- Delete -->
+      <section class="section" id="delete">
+        <div class="section-header">
+          <span class="section-icon">🗑️</span>
+          <h2>Delete</h2>
+        </div>
+        <p>Once your data is loaded (via <code>parse</code> or <code>scrape</code>), run <code>delete</code>. The browser will open, log you in, and start processing items from the database.</p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">[--type TYPE]</span> <span class="c-flag">[OPTIONS]</span></code></pre>
+
+        <div class="alert alert-warn">
+          <span class="alert-icon">⚠️</span>
+          <div>Deletion is <strong>permanent and irreversible.</strong> Always do a <code>--dry-run</code> first.</div>
+        </div>
+
+        <h3>Options</h3>
+        <table class="opts-table">
+          <thead>
+            <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--type TYPE</td>
+              <td>all</td>
+              <td>What to delete: <code>tweet</code>, <code>reply</code>, <code>quote</code>, <code>retweet</code>, <code>like</code>. Repeatable — pass multiple times. Omit to delete everything.</td>
+            </tr>
+            <tr>
+              <td>--dry-run</td>
+              <td>off</td>
+              <td>Navigate to each item and highlight what would be clicked, without actually deleting.</td>
+            </tr>
+            <tr>
+              <td>--headless / --no-headless</td>
+              <td>off</td>
+              <td>Run browser without a visible window</td>
+            </tr>
+            <tr>
+              <td>--min-delay FLOAT</td>
+              <td>3.0</td>
+              <td>Minimum seconds to wait between actions</td>
+            </tr>
+            <tr>
+              <td>--max-delay FLOAT</td>
+              <td>6.0</td>
+              <td>Maximum seconds to wait between actions</td>
+            </tr>
+            <tr>
+              <td>--before YYYY-MM-DD</td>
+              <td>—</td>
+              <td>Only delete posts published before this date</td>
+            </tr>
+            <tr>
+              <td>--after YYYY-MM-DD</td>
+              <td>—</td>
+              <td>Only delete posts published after this date</td>
+            </tr>
+            <tr>
+              <td>--filter TEXT</td>
+              <td>—</td>
+              <td>Natural language description of content to delete. Requires <code>--llm-provider</code>.</td>
+            </tr>
+            <tr>
+              <td>--llm-provider</td>
+              <td>—</td>
+              <td><code>openai</code>, <code>anthropic</code>, or <code>openrouter</code></td>
+            </tr>
+            <tr>
+              <td>--llm-model MODEL</td>
+              <td>—</td>
+              <td>Specific model name. Defaults to a cheap model per provider.</td>
+            </tr>
+            <tr>
+              <td>--llm-api-key KEY</td>
+              <td>env var</td>
+              <td>API key for the LLM provider. Falls back to env vars.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 id="delete-examples">Examples</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Dry run — preview everything that would be deleted</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--dry-run</span>
+
+<span class="c-comment"># Delete everything</span>
+<span class="c-cmd">twitter-cleaner delete</span>
+
+<span class="c-comment"># Delete only likes</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> like
+
+<span class="c-comment"># Delete only replies, before 2026</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> reply <span class="c-flag">--before</span> <span class="c-str">2026-01-01</span>
+
+<span class="c-comment"># Delete tweets, replies and quotes — not retweets or likes</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> tweet <span class="c-flag">--type</span> reply <span class="c-flag">--type</span> quote
+
+<span class="c-comment"># Delete everything, headlessly, with faster pacing</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--headless --min-delay</span> 1.5 <span class="c-flag">--max-delay</span> 3.0</code></pre>
+      </section>
+
+      <!-- Date filter -->
+      <section class="section" id="date-filter">
+        <div class="section-header">
+          <span class="section-icon">📅</span>
+          <h2>Date Filters</h2>
+        </div>
+        <p>Use <code>--before</code> and <code>--after</code> to restrict deletion to a specific time window. Both flags accept dates in <code>YYYY-MM-DD</code> format.</p>
+
+        <div class="alert alert-tip">
+          <span class="alert-icon">💡</span>
+          <div>When using both flags, <code>--after</code> must be earlier than <code>--before</code>. The range is exclusive on both ends.</div>
+        </div>
+
+        <h3>Examples</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Delete everything posted before 2022</span>
+<span class="c-cmd">twitter-cleaner delete all</span> <span class="c-flag">--before</span> <span class="c-str">2022-01-01</span>
+
+<span class="c-comment"># Delete tweets from a specific year (2020)</span>
+<span class="c-cmd">twitter-cleaner delete tweets</span> <span class="c-flag">--after</span> <span class="c-str">2020-01-01</span> <span class="c-flag">--before</span> <span class="c-str">2021-01-01</span>
+
+<span class="c-comment"># Unlike all likes before 2023, dry run first</span>
+<span class="c-cmd">twitter-cleaner delete likes</span> <span class="c-flag">--before</span> <span class="c-str">2023-01-01</span> <span class="c-flag">--dry-run</span></code></pre>
+      </section>
+
+      <!-- LLM filter -->
+      <section class="section" id="llm-filter">
+        <div class="section-header">
+          <span class="section-icon">🤖</span>
+          <h2>LLM Content Filters</h2>
+        </div>
+        <p>Use the <code>--filter</code> flag to describe in plain English what kind of content to delete. An LLM reads each tweet and decides whether it matches your description before the tool deletes it.</p>
+
+        <p>This requires an API key from one of three supported providers:</p>
+
+        <div class="provider-grid">
+          <div class="provider-card">
+            <div class="prov-icon">🟢</div>
+            <h5>OpenAI</h5>
+            <p>GPT-4o, GPT-4o-mini, etc.</p>
+          </div>
+          <div class="provider-card">
+            <div class="prov-icon">🟠</div>
+            <h5>Anthropic</h5>
+            <p>Claude Sonnet, Haiku, Opus</p>
+          </div>
+          <div class="provider-card">
+            <div class="prov-icon">🔵</div>
+            <h5>OpenRouter</h5>
+            <p>Multi-provider. Has a free tier.</p>
+          </div>
+        </div>
+
+        <h3>Examples</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Delete angry or political tweets using OpenAI</span>
+<span class="c-cmd">twitter-cleaner delete tweets</span> \
+  <span class="c-flag">--filter</span> <span class="c-str">"angry political tweets"</span> \
+  <span class="c-flag">--llm-provider</span> openai
+
+<span class="c-comment"># Use Anthropic Claude with a specific model</span>
+<span class="c-cmd">twitter-cleaner delete tweets</span> \
+  <span class="c-flag">--filter</span> <span class="c-str">"self-promotional posts about my startup"</span> \
+  <span class="c-flag">--llm-provider</span> anthropic \
+  <span class="c-flag">--llm-model</span> claude-haiku-4-5-20251001
+
+<span class="c-comment"># Use OpenRouter (free tier available)</span>
+<span class="c-cmd">twitter-cleaner delete tweets</span> \
+  <span class="c-flag">--filter</span> <span class="c-str">"tweets mentioning competitors"</span> \
+  <span class="c-flag">--llm-provider</span> openrouter \
+  <span class="c-flag">--llm-model</span> <span class="c-str">mistralai/mistral-7b-instruct</span>
+
+<span class="c-comment"># Combine with a date range — old embarrassing tweets</span>
+<span class="c-cmd">twitter-cleaner delete tweets</span> \
+  <span class="c-flag">--before</span> <span class="c-str">2020-01-01</span> \
+  <span class="c-flag">--filter</span> <span class="c-str">"cringe or embarrassing content"</span> \
+  <span class="c-flag">--llm-provider</span> openai \
+  <span class="c-flag">--dry-run</span></code></pre>
+
+        <div class="alert alert-tip">
+          <span class="alert-icon">💡</span>
+          <div>The API key can be passed via <code>--llm-api-key</code> or set in your <code>.env</code> file as <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, or <code>OPENROUTER_API_KEY</code>. No need to pass it on the command line.</div>
+        </div>
+      </section>
+
+      <!-- Status -->
+      <section class="section" id="status">
+        <div class="section-header">
+          <span class="section-icon">📊</span>
+          <h2>Status</h2>
+        </div>
+        <p>Check how many items are pending, done, failed, or skipped — broken down by type.</p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner status</span></code></pre>
+
+        <p>Outputs a table like:</p>
+        <pre><code>┌──────────┬─────────┬──────┬────────┬─────────┐
+│ Type     │ Pending │ Done │ Failed │ Skipped │
+├──────────┼─────────┼──────┼────────┼─────────┤
+│ tweet    │     120 │  340 │      5 │       0 │
+│ reply    │      45 │  210 │      2 │       0 │
+│ retweet  │      80 │  150 │      1 │       0 │
+│ like     │     200 │  500 │      0 │      12 │
+└──────────┴─────────┴──────┴────────┴─────────┘</code></pre>
+
+        <p>Run this after parsing to confirm records were loaded, and after deletion runs to track progress.</p>
+      </section>
+
+      <!-- Reset -->
+      <section class="section" id="reset">
+        <div class="section-header">
+          <span class="section-icon">🔁</span>
+          <h2>Reset</h2>
+        </div>
+        <p>Re-queue items for retry by resetting their status back to <code>pending</code>. Useful after transient failures or network errors.</p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">[OPTIONS]</span></code></pre>
+
+        <h3>Options</h3>
+        <table class="opts-table">
+          <thead>
+            <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--type TYPE</td>
+              <td>—</td>
+              <td>Only reset items of this type: <code>tweet</code>, <code>reply</code>, <code>retweet</code>, <code>quote</code>, or <code>like</code></td>
+            </tr>
+            <tr>
+              <td>--status STATUS</td>
+              <td>failed</td>
+              <td>Reset items with this status: <code>failed</code>, <code>skipped</code>, or <code>done</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Examples</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Re-queue all failed items (default)</span>
+<span class="c-cmd">twitter-cleaner reset</span>
+
+<span class="c-comment"># Re-queue only failed tweets</span>
+<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> tweet <span class="c-flag">--status</span> failed
+
+<span class="c-comment"># Re-queue skipped likes (e.g. to retry with different settings)</span>
+<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> like <span class="c-flag">--status</span> skipped
+
+<span class="c-comment"># Reset everything that was marked done (USE WITH CAUTION)</span>
+<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
+      </section>
+
+      <!-- All commands -->
+      <section class="section" id="all-commands">
+        <div class="section-header">
+          <span class="section-icon">📋</span>
+          <h2>All Commands Reference</h2>
+        </div>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># ── Data ingestion ─────────────────────────────────────────</span>
+<span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> PATH
+
+<span class="c-cmd">twitter-cleaner scrape</span>
+  <span class="c-flag">--tweets</span> / <span class="c-flag">--no-tweets</span>
+  <span class="c-flag">--likes</span>  / <span class="c-flag">--no-likes</span>
+  <span class="c-flag">--headless</span>
+
+<span class="c-comment"># ── Deletion ────────────────────────────────────────────────</span>
+<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">[OPTIONS]</span>
+
+<span class="c-comment"># Options:</span>
+  <span class="c-flag">--type</span> tweet|reply|quote|retweet|like  <span class="c-comment"># repeatable; default: all</span>
+  <span class="c-flag">--dry-run</span>
+  <span class="c-flag">--headless</span>
+  <span class="c-flag">--min-delay</span> FLOAT        <span class="c-comment"># default: 3.0</span>
+  <span class="c-flag">--max-delay</span> FLOAT        <span class="c-comment"># default: 6.0</span>
+  <span class="c-flag">--before</span> YYYY-MM-DD
+  <span class="c-flag">--after</span>  YYYY-MM-DD
+  <span class="c-flag">--filter</span> TEXT
+  <span class="c-flag">--llm-provider</span> openai|anthropic|openrouter
+  <span class="c-flag">--llm-model</span> MODEL
+  <span class="c-flag">--llm-api-key</span> KEY
+
+<span class="c-comment"># ── Management ──────────────────────────────────────────────</span>
+<span class="c-cmd">twitter-cleaner status</span>
+
+<span class="c-cmd">twitter-cleaner reset</span>
+  <span class="c-flag">--type</span>   tweet|reply|retweet|quote|like
+  <span class="c-flag">--status</span> failed|skipped|done    <span class="c-comment"># default: failed</span></code></pre>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section class="section" id="troubleshooting">
+        <div class="section-header">
+          <span class="section-icon">🛠️</span>
+          <h2>Troubleshooting</h2>
+        </div>
+        <p>Common issues and how to fix them.</p>
+
+        <div class="trouble-list">
+
+          <div class="trouble-item" id="tr-login">
+            <div class="trouble-q" onclick="toggleTrouble('tr-login')">
+              Login fails or gets stuck on a CAPTCHA / verification screen
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>Twitter sometimes requires an extra verification step (email code, phone confirmation) that Playwright can't handle automatically. Run without <code>--headless</code> so you can see the browser, complete the verification manually, then let the tool continue.</p>
+              <p>If you use 2FA, set <code>TWITTER_TOTP_SECRET</code> in your <code>.env</code> — the tool will generate the OTP automatically.</p>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-timeout">
+            <div class="trouble-q" onclick="toggleTrouble('tr-timeout')">
+              Many items are marked <code>failed</code> — timeouts on every tweet
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>This usually means Twitter is rate-limiting or temporarily blocking requests. Increase the delay between actions:</p>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner delete tweets</span> <span class="c-flag">--min-delay</span> 8 <span class="c-flag">--max-delay</span> 15</code></pre>
+              <p>After the run, reset failed items and retry: <code>twitter-cleaner reset</code></p>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-retry">
+            <div class="trouble-q" onclick="toggleTrouble('tr-retry')">
+              How do I retry failed items?
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>Items that fail 3 times are no longer retried automatically. Reset them back to <code>pending</code> and run delete again:</p>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner reset</span>          <span class="c-comment"># resets all failed items</span>
+<span class="c-cmd">twitter-cleaner delete tweets</span>   <span class="c-comment"># retries them</span></code></pre>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-dryrun">
+            <div class="trouble-q" onclick="toggleTrouble('tr-dryrun')">
+              Dry-run messed up my progress — items are now showing as done
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>This was fixed in a recent update — dry-run no longer writes any status changes to the database. If you ran an older version, reset the affected items:</p>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
+              <p><strong>Caution:</strong> this also resets anything that was genuinely deleted. Only do this if the done count doesn't reflect real deletions.</p>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-skipped">
+            <div class="trouble-q" onclick="toggleTrouble('tr-skipped')">
+              Lots of items are showing as <code>skipped</code> unexpectedly
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>Items are skipped when they return a 404 (already deleted), the tweet is unavailable, or they fall outside your date filter. Check your <code>--before</code> / <code>--after</code> flags.</p>
+              <p>To retry skipped items with different settings: <code>twitter-cleaner reset --status skipped</code></p>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-parse">
+            <div class="trouble-q" onclick="toggleTrouble('tr-parse')">
+              <code>parse</code> loads 0 records — no tweets found in archive
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>Make sure you're pointing at the right directory. The tool looks for <code>tweets.js</code> / <code>tweets-part1.js</code> etc. inside the path you provide. Your archive should have a <code>data/</code> folder — use that:</p>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> ~/Downloads/twitter-archive/data</code></pre>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-llm">
+            <div class="trouble-q" onclick="toggleTrouble('tr-llm')">
+              LLM filter is deleting everything (or nothing)
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>Be specific in your description. Vague prompts like <em>"bad tweets"</em> tend to match everything. Try something like <em>"tweets expressing strong political opinions"</em> or <em>"self-promotional posts about my side project"</em>.</p>
+              <p>Always combine with <code>--dry-run</code> to preview what the LLM selects before actually deleting:</p>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner delete tweets</span> <span class="c-flag">--filter</span> <span class="c-str">"your description"</span> <span class="c-flag">--llm-provider</span> openai <span class="c-flag">--dry-run</span></code></pre>
+            </div>
+          </div>
+
+          <div class="trouble-item" id="tr-session">
+            <div class="trouble-q" onclick="toggleTrouble('tr-session')">
+              Can I pause and resume a deletion run?
+              <span class="tq-chevron">▼</span>
+            </div>
+            <div class="trouble-a">
+              <p>Yes — just press <kbd>Ctrl+C</kbd> to stop. Progress is saved to the SQLite database after every item. The next time you run the same delete command it will pick up where it left off, skipping already-processed items.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div><!-- /content -->
+
+    <footer>
+      twitter-cleaner v0.1.0 &nbsp;·&nbsp; Python 3.11+ &nbsp;·&nbsp; Playwright-based browser automation
+    </footer>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+  // ── Theme ──
+  function setTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    document.getElementById('btn-light').classList.toggle('active', theme === 'light');
+    document.getElementById('btn-dark').classList.toggle('active', theme === 'dark');
+    localStorage.setItem('theme', theme);
+  }
+
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    setTheme(saved || preferred);
+  })();
+
+  // ── Collapsible commands ──
+  function toggleCmd(id) {
+    const card = document.getElementById(id);
+    const isOpen = card.classList.contains('open');
+    card.classList.toggle('open', !isOpen);
+    card.querySelector('.cmd-chevron').textContent = isOpen ? '▼' : '▲';
+  }
+
+  // ── Copy buttons ──
+  function copyCode(btn) {
+    const pre = btn.parentElement;
+    const text = pre.innerText.replace(/^Copy\n?/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1800);
+    });
+  }
+
+  // ── Active nav on scroll ──
+  const sections = document.querySelectorAll('.section');
+  const navLinks = document.querySelectorAll('#sidebar-nav a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const id = entry.target.id;
+        const link = document.querySelector(`#sidebar-nav a[href="#${id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // ── Command Builder ──
+  const ALL_TYPES = ['tweet', 'reply', 'quote', 'retweet', 'like'];
+
+  function buildCmd() {
+    const dryRun = document.getElementById('b-dryrun').checked;
+    const headless = document.getElementById('b-headless').checked;
+    const after = document.getElementById('b-after').value;
+    const before = document.getElementById('b-before').value;
+    const minDelay = parseFloat(document.getElementById('b-mindelay').value);
+    const maxDelay = parseFloat(document.getElementById('b-maxdelay').value);
+    const filter = document.getElementById('b-filter').value.trim();
+    const provider = document.getElementById('b-provider').value;
+    const model = document.getElementById('b-model').value.trim();
+
+    const checked = [...document.querySelectorAll('.b-type:checked')].map(cb => cb.value);
+    const isAll = ALL_TYPES.every(t => checked.includes(t));
+    const typeFlags = isAll ? [] : checked.map(t => `--type ${t}`);
+
+    let parts = ['twitter-cleaner delete', ...typeFlags];
+    if (dryRun)   parts.push('--dry-run');
+    if (headless) parts.push('--headless');
+    if (after)    parts.push(`--after ${after}`);
+    if (before)   parts.push(`--before ${before}`);
+    if (minDelay !== 3.0) parts.push(`--min-delay ${minDelay}`);
+    if (maxDelay !== 6.0) parts.push(`--max-delay ${maxDelay}`);
+    if (filter) {
+      parts.push(`--filter "${filter}"`);
+      parts.push(`--llm-provider ${provider}`);
+      if (model) parts.push(`--llm-model ${model}`);
+    }
+
+    const el = document.getElementById('b-output');
+    el.textContent = parts.length > 1
+      ? parts[0] + ' \\\n  ' + parts.slice(1).join(' \\\n  ')
+      : parts[0];
+  }
+
+  function copyBuilderCmd() {
+    const text = document.getElementById('b-output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('b-copy-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  document.querySelectorAll('#b-dryrun, #b-headless').forEach(el =>
+    el.addEventListener('change', buildCmd));
+
+  document.querySelectorAll('.b-type').forEach(el => el.addEventListener('change', buildCmd));
+
+  document.getElementById('b-after').addEventListener('input', buildCmd);
+  document.getElementById('b-before').addEventListener('input', buildCmd);
+
+  document.getElementById('b-mindelay').addEventListener('input', function () {
+    document.getElementById('b-mindelay-val').textContent = this.value;
+    buildCmd();
+  });
+
+  document.getElementById('b-maxdelay').addEventListener('input', function () {
+    document.getElementById('b-maxdelay-val').textContent = this.value;
+    buildCmd();
+  });
+
+  document.getElementById('b-filter').addEventListener('input', function () {
+    const hasFilter = this.value.trim().length > 0;
+    document.getElementById('b-llm-sub').style.display = hasFilter ? 'flex' : 'none';
+    buildCmd();
+  });
+
+  document.getElementById('b-provider').addEventListener('change', buildCmd);
+  document.getElementById('b-model').addEventListener('input', buildCmd);
+
+  buildCmd(); // initial render
+
+  // ── Troubleshooting accordion ──
+  function toggleTrouble(id) {
+    const item = document.getElementById(id);
+    item.classList.toggle('open');
+  }
+
+  // ── Search ──
+  const SEARCH_INDEX = [
+    { id: 'overview',       icon: '📖', title: 'Overview',            text: 'archive live scrape playwright browser automation no api key' },
+    { id: 'install',        icon: '⚙️', title: 'Installation',         text: 'install pip venv playwright chromium python clone' },
+    { id: 'config',         icon: '🔑', title: 'Configuration',        text: 'env username password totp 2fa openai anthropic openrouter api key' },
+    { id: 'builder',        icon: '🔧', title: 'Command Builder',       text: 'build command generate options dry run headless filter delay date' },
+    { id: 'workflow',       icon: '🔄', title: 'Typical Workflow',      text: 'workflow parse scrape delete status reset flow steps' },
+    { id: 'parse',          icon: '📦', title: 'Parse Archive',         text: 'parse archive tweets.js like.js download archive dir' },
+    { id: 'scrape',         icon: '🌐', title: 'Live Scrape',           text: 'scrape live profile headless no-tweets no-likes 3200' },
+    { id: 'delete',         icon: '🗑️', title: 'Delete',               text: 'delete tweets likes all dry-run headless min-delay max-delay' },
+    { id: 'date-filter',    icon: '📅', title: 'Date Filters',          text: 'before after date range year filter YYYY-MM-DD' },
+    { id: 'llm-filter',     icon: '🤖', title: 'LLM Content Filters',   text: 'llm filter openai anthropic openrouter gpt claude mistral content description' },
+    { id: 'status',         icon: '📊', title: 'Status',                text: 'status pending done failed skipped table progress count' },
+    { id: 'reset',          icon: '🔁', title: 'Reset',                 text: 'reset retry failed skipped done requeue type' },
+    { id: 'all-commands',   icon: '📋', title: 'All Commands',          text: 'reference all commands cheatsheet' },
+    { id: 'troubleshooting',icon: '🛠️', title: 'Troubleshooting',       text: 'login captcha timeout failed skipped pause resume llm dry-run parse 0 records' },
+  ];
+
+  const searchInput = document.getElementById('search-input');
+  const searchResults = document.getElementById('search-results');
+
+  searchInput.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    if (!q) { searchResults.classList.remove('visible'); return; }
+
+    const matches = SEARCH_INDEX.filter(entry =>
+      entry.title.toLowerCase().includes(q) || entry.text.toLowerCase().includes(q)
+    );
+
+    if (matches.length === 0) {
+      searchResults.innerHTML = '<div class="search-no-results">No results found</div>';
+    } else {
+      searchResults.innerHTML = matches.map(m => `
+        <div class="search-result-item" onclick="goToSection('${m.id}')">
+          <span class="sr-icon">${m.icon}</span>
+          <div>
+            <div class="sr-title">${m.title}</div>
+          </div>
+        </div>`).join('');
+    }
+    searchResults.classList.add('visible');
+  });
+
+  function goToSection(id) {
+    searchResults.classList.remove('visible');
+    searchInput.value = '';
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Close search on outside click
+  document.addEventListener('click', function (e) {
+    if (!document.getElementById('search-wrap').contains(e.target)) {
+      searchResults.classList.remove('visible');
+    }
+  });
+
+  // Keyboard shortcut: / or Ctrl+K to focus search
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+    }
+    if (e.key === 'Escape') {
+      searchResults.classList.remove('visible');
+      searchInput.blur();
+    }
+  });
+</script>
+
+</body>
+</html>

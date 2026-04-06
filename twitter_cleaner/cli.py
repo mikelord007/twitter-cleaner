@@ -18,7 +18,7 @@ console = Console()
 
 def _common_delete_options(f):
     f = click.option("--dry-run", is_flag=True, help="Navigate but don't actually delete.")(f)
-    f = click.option("--headless/--no-headless", default=True, show_default=True)(f)
+    f = click.option("--headless/--no-headless", default=False, show_default=True)(f)
     f = click.option("--min-delay", default=3.0, type=float, show_default=True)(f)
     f = click.option("--max-delay", default=6.0, type=float, show_default=True)(f)
     f = click.option(
@@ -45,14 +45,21 @@ def _common_delete_options(f):
     f = click.option(
         "--llm-provider",
         default=None,
-        type=click.Choice(["openai", "anthropic"], case_sensitive=False),
+        type=click.Choice(["openai", "anthropic", "openrouter"], case_sensitive=False),
         help="LLM provider to use for --filter.",
+    )(f)
+    f = click.option(
+        "--llm-model",
+        default=None,
+        metavar="MODEL",
+        help="Model name to use (e.g. gpt-4o, claude-opus-4-6, mistralai/mistral-7b-instruct). "
+             "Defaults to a cheap model for each provider.",
     )(f)
     f = click.option(
         "--llm-api-key",
         default=None,
-        envvar=["OPENAI_API_KEY", "ANTHROPIC_API_KEY"],
-        help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var).",
+        envvar=["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"],
+        help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY / OPENROUTER_API_KEY env var).",
     )(f)
     return f
 
@@ -95,17 +102,23 @@ def _parse_date_range(
     return dt_before, dt_after
 
 
-def _build_llm_filter(provider: str | None, api_key: str | None, description: str | None):
+def _build_llm_filter(
+    provider: str | None,
+    api_key: str | None,
+    description: str | None,
+    model: str | None,
+):
     if not description:
         return None
     if not provider:
         raise click.ClickException("--llm-provider is required when using --filter.")
     if not api_key:
         raise click.ClickException(
-            f"--llm-api-key (or OPENAI_API_KEY / ANTHROPIC_API_KEY env var) is required when using --filter."
+            "--llm-api-key (or OPENAI_API_KEY / ANTHROPIC_API_KEY / OPENROUTER_API_KEY env var) "
+            "is required when using --filter."
         )
     from twitter_cleaner.filters.llm_filter import build_llm_filter
-    return build_llm_filter(provider, api_key)
+    return build_llm_filter(provider, api_key, model)
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +131,7 @@ def main():
 
 
 # ---------------------------------------------------------------------------
-# parse
+# parse (archive-based)
 # ---------------------------------------------------------------------------
 
 @main.command()
@@ -143,67 +156,124 @@ def parse(archive_dir: Path):
         url = f"https://x.com/{cfg.username}/status/{rec.id}" if cfg.username else ""
         tweet_rows.append((rec.id, rec.tweet_type.value, url, rec.created_at, rec.text))
 
+    from twitter_cleaner.filters.date_filter import tweet_id_to_created_at
     like_rows = []
+    likes_no_date = 0
     for rec in parse_likes(archive_dir):
         url = f"https://x.com/i/web/status/{rec.id}"
-        like_rows.append((rec.id, "like", url, None, rec.text))
+        derived = tweet_id_to_created_at(rec.id)
+        if derived is None:
+            likes_no_date += 1
+        like_rows.append((rec.id, "like", url, derived, rec.text))
 
-    tweet_count = db.bulk_insert_pending(tweet_rows) if tweet_rows else 0
-    like_count = db.bulk_insert_pending(like_rows) if like_rows else 0
+    tweet_new, tweet_backfilled = db.bulk_insert_pending(tweet_rows) if tweet_rows else (0, 0)
+    like_new, like_backfilled = db.bulk_insert_pending(like_rows) if like_rows else (0, 0)
+
+    null_in_db = db._conn.execute("SELECT COUNT(*) FROM items WHERE tweet_date IS NULL").fetchone()[0]
+    sample_like = db._conn.execute("SELECT id, tweet_date FROM items WHERE type='like' LIMIT 1").fetchone()
 
     db.close()
     console.print(f"[green]Parsed {len(tweet_rows)} tweets/retweets/replies, {len(like_rows)} likes.[/]")
-    console.print(f"[green]New records added to DB: {tweet_count + like_count}[/]")
+    console.print(f"[green]New records added: {tweet_new + like_new}[/]")
+    console.print(f"[dim]Backfilled: {tweet_backfilled + like_backfilled}  |  Likes with no derivable date: {likes_no_date}  |  Still NULL in DB: {null_in_db}[/]")
+    if sample_like:
+        console.print(f"[dim]Sample like — id: {sample_like['id']}  tweet_date: {sample_like['tweet_date']!r}[/]")
     console.print("[dim]Run 'twitter-cleaner status' to see full counts.[/]")
 
 
 # ---------------------------------------------------------------------------
-# delete subgroup
+# scrape (live profile — alternative to parse)
 # ---------------------------------------------------------------------------
 
-@main.group()
-def delete():
-    """Delete tweets, likes, or everything."""
+@main.command()
+@click.option(
+    "--tweets/--no-tweets", default=True, show_default=True,
+    help="Scrape the tweets + replies tabs.",
+)
+@click.option(
+    "--likes/--no-likes", default=True, show_default=True,
+    help="Scrape the likes tab.",
+)
+@click.option("--headless/--no-headless", default=False, show_default=True)
+def scrape(tweets: bool, likes: bool, headless: bool):
+    """
+    Scrape your live Twitter profile instead of using a downloaded archive.
+
+    Scrolls your tweets and/or likes tabs and loads found IDs into the
+    progress database. Limited to roughly your last 3200 tweets by Twitter.
+    Use 'parse' with a downloaded archive to get your full history.
+    """
+    asyncio.run(_run_scrape(tweets, likes, headless))
 
 
-@delete.command("tweets")
+async def _run_scrape(do_tweets: bool, do_likes: bool, headless: bool) -> None:
+    from twitter_cleaner.browser.session import TwitterSession
+    from twitter_cleaner.scraper.profile import scrape_likes, scrape_tweets
+    from twitter_cleaner.store.progress_db import ProgressDB
+
+    cfg = Config()
+    try:
+        cfg.validate()
+    except ValueError as e:
+        raise click.ClickException(str(e))
+
+    cfg.headless = headless
+    cfg.ensure_state_dir()
+    db = ProgressDB(cfg.db_file)
+
+    session = TwitterSession(cfg)
+    try:
+        page = await session.start()
+
+        from twitter_cleaner.filters.date_filter import tweet_id_to_created_at
+
+        if do_tweets:
+            console.print(f"[bold]Scraping tweets/replies for @{cfg.username}...[/]")
+            rows = []
+            async for tweet_id, tweet_type in scrape_tweets(page, cfg.username):
+                url = f"https://x.com/{cfg.username}/status/{tweet_id}"
+                rows.append((tweet_id, tweet_type, url, tweet_id_to_created_at(tweet_id), None))
+            new, _ = db.bulk_insert_pending(rows)
+            console.print(f"[green]Tweets: found {len(rows)}, {new} new added to DB.[/]")
+
+        if do_likes:
+            console.print(f"[bold]Scraping likes for @{cfg.username}...[/]")
+            rows = []
+            async for tweet_id, _ in scrape_likes(page, cfg.username):
+                url = f"https://x.com/i/web/status/{tweet_id}"
+                rows.append((tweet_id, "like", url, tweet_id_to_created_at(tweet_id), None))
+            new, _ = db.bulk_insert_pending(rows)
+            console.print(f"[green]Likes: found {len(rows)}, {new} new added to DB.[/]")
+
+    finally:
+        await session.close()
+        db.close()
+
+    console.print("[dim]Run 'twitter-cleaner status' to see full counts.[/]")
+
+
+# ---------------------------------------------------------------------------
+# delete command
+# ---------------------------------------------------------------------------
+
+@main.command("delete")
+@click.option(
+    "--type", "types",
+    multiple=True,
+    type=click.Choice(["tweet", "reply", "quote", "retweet", "like"], case_sensitive=False),
+    help="Types to delete. Repeatable. Defaults to all five if omitted.",
+)
 @_common_delete_options
-def delete_tweets(
-    dry_run, headless, min_delay, max_delay, before_date, after_date, llm_description, llm_provider, llm_api_key
+def delete(
+    types, dry_run, headless, min_delay, max_delay, before_date, after_date,
+    llm_description, llm_provider, llm_model, llm_api_key,
 ):
-    """Delete all tweets (including replies, retweets, and quotes)."""
+    """Delete your Twitter history. Use --type to target specific kinds."""
     cfg = _build_config(headless, dry_run, min_delay, max_delay)
     dt_before, dt_after = _parse_date_range(before_date, after_date)
-    llm = _build_llm_filter(llm_provider, llm_api_key, llm_description)
-    asyncio.run(_run_delete(cfg, item_types=["tweet", "reply", "retweet", "quote"],
-                            before_date=dt_before, after_date=dt_after,
-                            llm_filter=llm, llm_description=llm_description or ""))
-
-
-@delete.command("likes")
-@_common_delete_options
-def delete_likes(
-    dry_run, headless, min_delay, max_delay, before_date, after_date, llm_description, llm_provider, llm_api_key
-):
-    """Unlike all liked tweets."""
-    cfg = _build_config(headless, dry_run, min_delay, max_delay)
-    dt_before, dt_after = _parse_date_range(before_date, after_date)
-    llm = _build_llm_filter(llm_provider, llm_api_key, llm_description)
-    asyncio.run(_run_delete(cfg, item_types=["like"],
-                            before_date=dt_before, after_date=dt_after,
-                            llm_filter=llm, llm_description=llm_description or ""))
-
-
-@delete.command("all")
-@_common_delete_options
-def delete_all(
-    dry_run, headless, min_delay, max_delay, before_date, after_date, llm_description, llm_provider, llm_api_key
-):
-    """Delete all tweets and unlike all likes."""
-    cfg = _build_config(headless, dry_run, min_delay, max_delay)
-    dt_before, dt_after = _parse_date_range(before_date, after_date)
-    llm = _build_llm_filter(llm_provider, llm_api_key, llm_description)
-    asyncio.run(_run_delete(cfg, item_types=None,
+    llm = _build_llm_filter(llm_provider, llm_api_key, llm_description, llm_model)
+    item_types = list(types) if types else None
+    asyncio.run(_run_delete(cfg, item_types=item_types,
                             before_date=dt_before, after_date=dt_after,
                             llm_filter=llm, llm_description=llm_description or ""))
 

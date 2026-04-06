@@ -42,19 +42,23 @@ def _classify(tweet: dict) -> TweetType:
     text = tweet.get("full_text", "")
     if text.startswith("RT @"):
         return TweetType.RETWEET
+    # Explicit quote fields (present in some archive versions)
+    is_quote = tweet.get("is_quote_status")
+    if is_quote in ("true", True) or tweet.get("quoted_status_id") or tweet.get("quoted_status_id_str"):
+        return TweetType.QUOTE
+    # Fallback: quote tweets always embed a link to another tweet in their entities
+    for url in tweet.get("entities", {}).get("urls", []):
+        expanded = url.get("expanded_url", "")
+        if ("/status/" in expanded) and ("twitter.com" in expanded or "x.com" in expanded):
+            return TweetType.QUOTE
     if tweet.get("in_reply_to_user_id"):
         return TweetType.REPLY
-    if tweet.get("is_quote_status") == "true":
-        return TweetType.QUOTE
     return TweetType.TWEET
 
 
 def parse_tweets(archive_dir: Path) -> Iterator[TweetRecord]:
     # Discover all tweet part files: tweets.js, tweets-part1.js, etc.
-    parts = sorted(archive_dir.glob("tweet*.js"))
-    if not parts:
-        # Some archives use "tweets.js"
-        parts = sorted(archive_dir.glob("tweets*.js"))
+    parts = sorted(archive_dir.glob("tweets*.js"))
     for path in parts:
         entries = _load_js_file(path)
         for entry in entries:

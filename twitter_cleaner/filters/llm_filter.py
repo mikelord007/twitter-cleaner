@@ -12,18 +12,21 @@ class LLMClient(Protocol):
         ...
 
 
-class OpenAIFilter:
-    """Classify tweets using the OpenAI chat completions API."""
+class _OpenAICompatibleFilter:
+    """Base for any provider that speaks the OpenAI chat completions API."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini") -> None:
+    _base_url: str
+    _default_model: str
+
+    def __init__(self, api_key: str, model: str | None = None) -> None:
         self._api_key = api_key
-        self._model = model
+        self._model = model or self._default_model
+
+    def _extra_headers(self) -> dict[str, str]:
+        return {}
 
     def classify_batch(self, tweets: list[str], description: str) -> list[bool]:
-        results: list[bool] = []
-        for tweet in tweets:
-            results.append(self._classify_one(tweet, description))
-        return results
+        return [self._classify_one(tweet, description) for tweet in tweets]
 
     def _classify_one(self, tweet: str, description: str) -> bool:
         prompt = (
@@ -38,14 +41,12 @@ class OpenAIFilter:
             "temperature": 0,
         }).encode()
 
-        req = urllib.request.Request(
-            "https://api.openai.com/v1/chat/completions",
-            data=payload,
-            headers={
-                "Authorization": f"Bearer {self._api_key}",
-                "Content-Type": "application/json",
-            },
-        )
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            **self._extra_headers(),
+        }
+        req = urllib.request.Request(self._base_url, data=payload, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read())
@@ -55,18 +56,32 @@ class OpenAIFilter:
             return False
 
 
-class AnthropicFilter:
-    """Classify tweets using the Anthropic Messages API."""
+class OpenAIFilter(_OpenAICompatibleFilter):
+    """OpenAI chat completions API."""
+    _base_url = "https://api.openai.com/v1/chat/completions"
+    _default_model = "gpt-4o-mini"
 
-    def __init__(self, api_key: str, model: str = "claude-haiku-4-5-20251001") -> None:
+
+class OpenRouterFilter(_OpenAICompatibleFilter):
+    """OpenRouter — gives access to hundreds of models with one API key."""
+    _base_url = "https://openrouter.ai/api/v1/chat/completions"
+    _default_model = "meta-llama/llama-3.1-8b-instruct:free"
+
+    def _extra_headers(self) -> dict[str, str]:
+        return {"X-Title": "twitter-cleaner"}
+
+
+class AnthropicFilter:
+    """Anthropic Messages API."""
+
+    _default_model = "claude-haiku-4-5-20251001"
+
+    def __init__(self, api_key: str, model: str | None = None) -> None:
         self._api_key = api_key
-        self._model = model
+        self._model = model or self._default_model
 
     def classify_batch(self, tweets: list[str], description: str) -> list[bool]:
-        results: list[bool] = []
-        for tweet in tweets:
-            results.append(self._classify_one(tweet, description))
-        return results
+        return [self._classify_one(tweet, description) for tweet in tweets]
 
     def _classify_one(self, tweet: str, description: str) -> bool:
         prompt = (
@@ -111,10 +126,12 @@ class KeywordFilter:
         ]
 
 
-def build_llm_filter(provider: str, api_key: str) -> LLMClient:
+def build_llm_filter(provider: str, api_key: str, model: str | None = None) -> LLMClient:
     provider = provider.lower()
     if provider == "openai":
-        return OpenAIFilter(api_key)
+        return OpenAIFilter(api_key, model)
     elif provider in ("anthropic", "claude"):
-        return AnthropicFilter(api_key)
-    raise ValueError(f"Unknown LLM provider: {provider!r}. Choose 'openai' or 'anthropic'.")
+        return AnthropicFilter(api_key, model)
+    elif provider == "openrouter":
+        return OpenRouterFilter(api_key, model)
+    raise ValueError(f"Unknown LLM provider: {provider!r}. Choose 'openai', 'anthropic', or 'openrouter'.")

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv .venv)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/twitter-cleaner parse:*)",
+      "Bash(python -c ':*)",
+      "Bash(.venv/Scripts/twitter-cleaner status:*)",
+      "Bash(.venv/Scripts/twitter-cleaner delete:*)",
+      "Bash(.venv/Scripts/playwright install:*)",
+      "Bash(.venv/Scripts/python.exe -m twitter_cleaner.cli --help)",
+      "Bash(.venv/Scripts/twitter-cleaner.exe --help)",
+      "Bash(.venv/Scripts/twitter-cleaner.exe status:*)",
+      "Bash(.venv/Scripts/twitter-cleaner.exe delete:*)",
+      "Bash(rm -f .twitter_cleaner/progress.db)",
+      "Bash(twitter-cleaner parse:*)",
+      "Bash(python -m twitter_cleaner.cli parse --archive-dir ./data)",
+      "Bash(rm:*)",
+      "Bash(python -c \"from twitter_cleaner.cli import main; main\\(\\)\" parse --archive-dir ./data)",
+      "Bash(python -c \"from twitter_cleaner.cli import main; main\\(\\)\" status)",
+      "Bash(python -c \"from twitter_cleaner.cli import main; main\\(\\)\" delete --type reply --dry-run --after 2026-01-01)",
+      "Bash(pip install:*)"
+    ]
+  }
+}

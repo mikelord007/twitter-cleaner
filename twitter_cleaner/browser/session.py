@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright.async_api import BrowserContext, Page, async_playwright
 
 from twitter_cleaner.config import Config
 
@@ -12,23 +12,37 @@ class TwitterSession:
     def __init__(self, config: Config) -> None:
         self._config = config
         self._playwright = None
-        self._browser: Browser | None = None
         self.context: BrowserContext | None = None
         self.page: Page | None = None
 
     async def start(self) -> Page:
         self._playwright = await async_playwright().start()
-        launch_kwargs: dict = {"headless": self._config.headless}
 
-        session_file = self._config.session_file
-        context_kwargs: dict = {}
-        if session_file.exists():
-            context_kwargs["storage_state"] = str(session_file)
+        # Use a persistent profile directory so the browser accumulates real
+        # cookies and state — much harder for Twitter to flag as a bot.
+        profile_dir = str(self._config.state_dir / "chrome_profile")
 
-        self._browser = await self._playwright.chromium.launch(**launch_kwargs)
-        self.context = await self._browser.new_context(**context_kwargs)
-        self.page = await self.context.new_page()
+        self.context = await self._playwright.chromium.launch_persistent_context(
+            profile_dir,
+            channel="chrome",        # use the user's real installed Chrome
+            headless=False,          # must be visible for manual login
+            viewport={"width": 1280, "height": 800},
+            args=["--disable-blink-features=AutomationControlled"],
+        )
 
+        # Hide the webdriver flag.
+        await self.context.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        )
+
+        # Reuse the first tab Playwright opens automatically; close any extras.
+        pages = self.context.pages
+        if pages:
+            self.page = pages[0]
+            for p in pages[1:]:
+                await p.close()
+        else:
+            self.page = await self.context.new_page()
         await self._ensure_logged_in()
         return self.page
 
@@ -38,55 +52,36 @@ class TwitterSession:
         await asyncio.sleep(2)
 
         if "login" in page.url or "i/flow/login" in page.url:
-            await self._login()
+            await self._manual_login()
 
-    async def _login(self) -> None:
-        cfg = self._config
+    async def _manual_login(self) -> None:
         page = self.page
-
         await page.goto("https://x.com/i/flow/login", wait_until="domcontentloaded", timeout=30000)
+
+        print("\n" + "-" * 60)
+        print("  Log in to Twitter/X in the browser window that just opened.")
+        print("  Complete any 2FA or verification steps as usual.")
+        print("  This window will close automatically once you're logged in.")
+        print("-" * 60 + "\n")
+
+        # Poll until the URL leaves the login flow (up to 5 minutes).
+        for _ in range(300):
+            await asyncio.sleep(1)
+            url = page.url
+            if "login" not in url and "i/flow" not in url and "x.com" in url:
+                break
+        else:
+            raise RuntimeError("Login timed out after 5 minutes.")
+
         await asyncio.sleep(2)
 
-        # Username
-        username_input = page.get_by_label("Phone, email, or username")
-        await username_input.fill(cfg.username)
-        await page.get_by_role("button", name="Next").click()
-        await asyncio.sleep(2)
+        if "login" in page.url or "i/flow" in page.url:
+            raise RuntimeError("Login did not complete -- please try again.")
 
-        # Possible "enter your phone/username" confirmation step
-        unusual_input = page.locator('input[data-testid="ocfEnterTextTextInput"]')
-        if await unusual_input.count() > 0:
-            await unusual_input.fill(cfg.username)
-            await page.get_by_role("button", name="Next").click()
-            await asyncio.sleep(2)
-
-        # Password
-        password_input = page.get_by_label("Password", exact=True)
-        await password_input.fill(cfg.password)
-        await page.get_by_role("button", name="Log in").click()
-        await asyncio.sleep(3)
-
-        # TOTP 2FA
-        if cfg.totp_secret:
-            totp_input = page.locator('input[data-testid="ocfEnterTextTextInput"]')
-            if await totp_input.count() > 0:
-                import pyotp
-                code = pyotp.TOTP(cfg.totp_secret).now()
-                await totp_input.fill(code)
-                await page.get_by_role("button", name="Next").click()
-                await asyncio.sleep(3)
-
-        # Verify we're logged in
-        if "login" in page.url or "i/flow/login" in page.url:
-            raise RuntimeError("Login failed — check your credentials in .env")
-
-        # Save session cookies
-        await self.context.storage_state(path=str(self._config.session_file))
+        print("Logged in. Session will persist in the Chrome profile.\n")
 
     async def close(self) -> None:
         if self.context:
-            await self.context.storage_state(path=str(self._config.session_file))
-        if self._browser:
-            await self._browser.close()
+            await self.context.close()
         if self._playwright:
             await self._playwright.stop()

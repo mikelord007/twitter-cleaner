@@ -49,14 +49,35 @@ class ProgressDB:
 
     def bulk_insert_pending(
         self, rows: list[tuple[str, str, str, str | None, str | None]]
-    ) -> int:
-        """Insert (id, type, url, tweet_date, tweet_text) tuples as pending. Ignores existing rows."""
+    ) -> tuple[int, int]:
+        """Insert (id, type, url, tweet_date, tweet_text) tuples as pending.
+        Returns (new_rows, backfilled_dates).
+        New rows are inserted; existing rows have tweet_date backfilled if it was NULL."""
+        before = self._conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
         self._conn.executemany(
             "INSERT OR IGNORE INTO items (id, type, url, tweet_date, tweet_text) VALUES (?, ?, ?, ?, ?)",
             rows,
         )
+        after = self._conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+        new_rows = after - before
+
+        # Backfill tweet_date on existing rows that had it NULL (e.g. from a previous parse)
+        backfill_rows = [(tweet_date, id_, type_) for id_, type_, _url, tweet_date, _text in rows if tweet_date]
+        backfilled = 0
+        if backfill_rows:
+            null_before = self._conn.execute(
+                "SELECT COUNT(*) FROM items WHERE tweet_date IS NULL"
+            ).fetchone()[0]
+            self._conn.executemany(
+                "UPDATE items SET tweet_date = ? WHERE id = ? AND type = ? AND tweet_date IS NULL",
+                backfill_rows,
+            )
+            null_after = self._conn.execute(
+                "SELECT COUNT(*) FROM items WHERE tweet_date IS NULL"
+            ).fetchone()[0]
+            backfilled = null_before - null_after
         self._conn.commit()
-        return self._conn.execute("SELECT changes()").fetchone()[0]
+        return new_rows, backfilled
 
     def get_pending(
         self,
@@ -68,12 +89,16 @@ class ProgressDB:
             return self._conn.execute(
                 f"SELECT * FROM items WHERE status IN ('pending', 'failed') "
                 f"AND type IN ({placeholders}) AND retry_count < 3 "
-                f"ORDER BY created_at LIMIT ?",
+                f"ORDER BY CASE type WHEN 'tweet' THEN 1 WHEN 'quote' THEN 2 "
+                f"WHEN 'reply' THEN 3 WHEN 'retweet' THEN 4 WHEN 'like' THEN 5 ELSE 6 END, "
+                f"CAST(id AS INTEGER) DESC LIMIT ?",
                 (*item_types, limit),
             ).fetchall()
         return self._conn.execute(
             "SELECT * FROM items WHERE status IN ('pending', 'failed') "
-            "AND retry_count < 3 ORDER BY type, created_at LIMIT ?",
+            "AND retry_count < 3 ORDER BY CASE type "
+            "WHEN 'tweet' THEN 1 WHEN 'quote' THEN 2 WHEN 'reply' THEN 3 "
+            "WHEN 'retweet' THEN 4 WHEN 'like' THEN 5 ELSE 6 END, CAST(id AS INTEGER) DESC LIMIT ?",
             (limit,),
         ).fetchall()
 

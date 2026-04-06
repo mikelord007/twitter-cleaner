@@ -18,7 +18,7 @@ class Config:
     archive_dir: Path = Path("data")
     state_dir: Path = Path(".twitter_cleaner")
 
-    headless: bool = True
+    headless: bool = False
     dry_run: bool = False
     min_delay: float = 3.0
     max_delay: float = 6.0
@@ -37,5 +37,3 @@ class Config:
     def validate(self) -> None:
         if not self.username:
             raise ValueError("TWITTER_USERNAME is not set")
-        if not self.password:
-            raise ValueError("TWITTER_PASSWORD is not set")
