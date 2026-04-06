@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+import warnings
 from typing import Protocol
+
+import click
 
 
 class LLMClient(Protocol):
@@ -52,7 +55,26 @@ class _OpenAICompatibleFilter:
                 data = json.loads(resp.read())
             answer = data["choices"][0]["message"]["content"].strip().lower()
             return answer.startswith("yes")
-        except (urllib.error.URLError, KeyError, json.JSONDecodeError):
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise click.ClickException(
+                    f"LLM API authentication failed (401).\n"
+                    f"Check that your API key is correct and has not expired."
+                )
+            if e.code == 429:
+                warnings.warn(
+                    "LLM API rate limit hit (429) — tweet will be skipped. "
+                    "Slow down or upgrade your API plan.",
+                    stacklevel=2,
+                )
+                return False
+            warnings.warn(f"LLM API error {e.code}: {e.reason} — tweet will be skipped.", stacklevel=2)
+            return False
+        except urllib.error.URLError as e:
+            warnings.warn(f"LLM API unreachable: {e.reason} — tweet will be skipped.", stacklevel=2)
+            return False
+        except (KeyError, json.JSONDecodeError) as e:
+            warnings.warn(f"LLM API response unexpected format: {e} — tweet will be skipped.", stacklevel=2)
             return False
 
 
@@ -109,7 +131,25 @@ class AnthropicFilter:
                 data = json.loads(resp.read())
             answer = data["content"][0]["text"].strip().lower()
             return answer.startswith("yes")
-        except (urllib.error.URLError, KeyError, json.JSONDecodeError):
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise click.ClickException(
+                    "Anthropic API authentication failed (401).\n"
+                    "Check that your ANTHROPIC_API_KEY is correct and has not expired."
+                )
+            if e.code == 429:
+                warnings.warn(
+                    "Anthropic API rate limit hit (429) — tweet will be skipped.",
+                    stacklevel=2,
+                )
+                return False
+            warnings.warn(f"Anthropic API error {e.code}: {e.reason} — tweet will be skipped.", stacklevel=2)
+            return False
+        except urllib.error.URLError as e:
+            warnings.warn(f"Anthropic API unreachable: {e.reason} — tweet will be skipped.", stacklevel=2)
+            return False
+        except (KeyError, json.JSONDecodeError) as e:
+            warnings.warn(f"Anthropic API response unexpected format: {e} — tweet will be skipped.", stacklevel=2)
             return False
 
 

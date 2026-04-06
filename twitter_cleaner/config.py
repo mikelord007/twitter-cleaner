@@ -20,6 +20,7 @@ class Config:
 
     headless: bool = False
     dry_run: bool = False
+    stealth: bool = True
     min_delay: float = 3.0
     max_delay: float = 6.0
 

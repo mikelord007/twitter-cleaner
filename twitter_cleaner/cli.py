@@ -19,6 +19,13 @@ console = Console()
 def _common_delete_options(f):
     f = click.option("--dry-run", is_flag=True, help="Navigate but don't actually delete.")(f)
     f = click.option("--headless/--no-headless", default=False, show_default=True)(f)
+    f = click.option(
+        "--stealth/--no-stealth",
+        default=True,
+        show_default=True,
+        help="Stealth mode: periodic long pauses every 50 actions to avoid rate-limiting. "
+             "Pass --no-stealth to skip these breaks.",
+    )(f)
     f = click.option("--min-delay", default=3.0, type=float, show_default=True)(f)
     f = click.option("--max-delay", default=6.0, type=float, show_default=True)(f)
     f = click.option(
@@ -69,10 +76,12 @@ def _build_config(
     dry_run: bool,
     min_delay: float,
     max_delay: float,
+    stealth: bool = True,
 ) -> Config:
     cfg = Config(
         headless=headless,
         dry_run=dry_run,
+        stealth=stealth,
         min_delay=min_delay,
         max_delay=max_delay,
     )
@@ -144,12 +153,27 @@ def main():
 )
 def parse(archive_dir: Path):
     """Load your Twitter archive into the progress database."""
+    import sqlite3
+
     from twitter_cleaner.archive.parser import parse_likes, parse_tweets
     from twitter_cleaner.store.progress_db import ProgressDB
 
+    # Check for archive files before doing anything else.
+    tweet_files = list(archive_dir.glob("tweets*.js"))
+    like_files = list(archive_dir.glob("like*.js"))
+    if not tweet_files and not like_files:
+        raise click.ClickException(
+            f"No archive files found in '{archive_dir}'.\n"
+            "Expected tweets.js (or tweets-part1.js, …) and/or like.js.\n"
+            "Make sure you extracted your Twitter archive and are pointing at the 'data' folder."
+        )
+
     cfg = Config()
     cfg.ensure_state_dir()
-    db = ProgressDB(cfg.db_file)
+    try:
+        db = ProgressDB(cfg.db_file)
+    except sqlite3.OperationalError as e:
+        raise click.ClickException(f"Cannot open progress database: {e}")
 
     tweet_rows = []
     for rec in parse_tweets(archive_dir):
@@ -208,6 +232,7 @@ def scrape(tweets: bool, likes: bool, headless: bool):
 
 async def _run_scrape(do_tweets: bool, do_likes: bool, headless: bool) -> None:
     from twitter_cleaner.browser.session import TwitterSession
+    from twitter_cleaner.errors import handle_errors
     from twitter_cleaner.scraper.profile import scrape_likes, scrape_tweets
     from twitter_cleaner.store.progress_db import ProgressDB
 
@@ -219,35 +244,36 @@ async def _run_scrape(do_tweets: bool, do_likes: bool, headless: bool) -> None:
 
     cfg.headless = headless
     cfg.ensure_state_dir()
-    db = ProgressDB(cfg.db_file)
 
-    session = TwitterSession(cfg)
-    try:
-        page = await session.start()
+    async with handle_errors():
+        db = ProgressDB(cfg.db_file)
+        session = TwitterSession(cfg)
+        try:
+            page = await session.start()
 
-        from twitter_cleaner.filters.date_filter import tweet_id_to_created_at
+            from twitter_cleaner.filters.date_filter import tweet_id_to_created_at
 
-        if do_tweets:
-            console.print(f"[bold]Scraping tweets/replies for @{cfg.username}...[/]")
-            rows = []
-            async for tweet_id, tweet_type in scrape_tweets(page, cfg.username):
-                url = f"https://x.com/{cfg.username}/status/{tweet_id}"
-                rows.append((tweet_id, tweet_type, url, tweet_id_to_created_at(tweet_id), None))
-            new, _ = db.bulk_insert_pending(rows)
-            console.print(f"[green]Tweets: found {len(rows)}, {new} new added to DB.[/]")
+            if do_tweets:
+                console.print(f"[bold]Scraping tweets/replies for @{cfg.username}...[/]")
+                rows = []
+                async for tweet_id, tweet_type in scrape_tweets(page, cfg.username):
+                    url = f"https://x.com/{cfg.username}/status/{tweet_id}"
+                    rows.append((tweet_id, tweet_type, url, tweet_id_to_created_at(tweet_id), None))
+                new, _ = db.bulk_insert_pending(rows)
+                console.print(f"[green]Tweets: found {len(rows)}, {new} new added to DB.[/]")
 
-        if do_likes:
-            console.print(f"[bold]Scraping likes for @{cfg.username}...[/]")
-            rows = []
-            async for tweet_id, _ in scrape_likes(page, cfg.username):
-                url = f"https://x.com/i/web/status/{tweet_id}"
-                rows.append((tweet_id, "like", url, tweet_id_to_created_at(tweet_id), None))
-            new, _ = db.bulk_insert_pending(rows)
-            console.print(f"[green]Likes: found {len(rows)}, {new} new added to DB.[/]")
+            if do_likes:
+                console.print(f"[bold]Scraping likes for @{cfg.username}...[/]")
+                rows = []
+                async for tweet_id, _ in scrape_likes(page, cfg.username):
+                    url = f"https://x.com/i/web/status/{tweet_id}"
+                    rows.append((tweet_id, "like", url, tweet_id_to_created_at(tweet_id), None))
+                new, _ = db.bulk_insert_pending(rows)
+                console.print(f"[green]Likes: found {len(rows)}, {new} new added to DB.[/]")
 
-    finally:
-        await session.close()
-        db.close()
+        finally:
+            await session.close()
+            db.close()
 
     console.print("[dim]Run 'twitter-cleaner status' to see full counts.[/]")
 
@@ -265,11 +291,11 @@ async def _run_scrape(do_tweets: bool, do_likes: bool, headless: bool) -> None:
 )
 @_common_delete_options
 def delete(
-    types, dry_run, headless, min_delay, max_delay, before_date, after_date,
+    types, dry_run, headless, stealth, min_delay, max_delay, before_date, after_date,
     llm_description, llm_provider, llm_model, llm_api_key,
 ):
     """Delete your Twitter history. Use --type to target specific kinds."""
-    cfg = _build_config(headless, dry_run, min_delay, max_delay)
+    cfg = _build_config(headless, dry_run, min_delay, max_delay, stealth=stealth)
     dt_before, dt_after = _parse_date_range(before_date, after_date)
     llm = _build_llm_filter(llm_provider, llm_api_key, llm_description, llm_model)
     item_types = list(types) if types else None
@@ -280,31 +306,34 @@ def delete(
 
 async def _run_delete(cfg, item_types, before_date, after_date, llm_filter, llm_description):
     from twitter_cleaner.browser.session import TwitterSession
+    from twitter_cleaner.errors import handle_errors
     from twitter_cleaner.store.progress_db import ProgressDB
     from twitter_cleaner.worker.runner import run_deletion
 
     cfg.ensure_state_dir()
-    db = ProgressDB(cfg.db_file)
 
-    if cfg.dry_run:
-        console.print("[yellow]DRY RUN — no items will actually be deleted.[/]")
+    async with handle_errors():
+        db = ProgressDB(cfg.db_file)
 
-    session = TwitterSession(cfg)
-    try:
-        page = await session.start()
-        await run_deletion(
-            page=page,
-            db=db,
-            config=cfg,
-            item_types=item_types,
-            before_date=before_date,
-            after_date=after_date,
-            llm_filter=llm_filter,
-            llm_description=llm_description,
-        )
-    finally:
-        await session.close()
-        db.close()
+        if cfg.dry_run:
+            console.print("[yellow]DRY RUN — no items will actually be deleted.[/]")
+
+        session = TwitterSession(cfg)
+        try:
+            page = await session.start()
+            await run_deletion(
+                page=page,
+                db=db,
+                config=cfg,
+                item_types=item_types,
+                before_date=before_date,
+                after_date=after_date,
+                llm_filter=llm_filter,
+                llm_description=llm_description,
+            )
+        finally:
+            await session.close()
+            db.close()
 
     console.print("[bold green]Done![/]")
 
@@ -316,18 +345,29 @@ async def _run_delete(cfg, item_types, before_date, after_date, llm_filter, llm_
 @main.command()
 def status():
     """Show deletion progress counts by type."""
+    import sqlite3
+
     from twitter_cleaner.display.progress_ui import print_stats_table
     from twitter_cleaner.store.progress_db import ProgressDB
 
     cfg = Config()
     db_path = cfg.db_file
     if not db_path.exists():
-        console.print("[yellow]No progress database found. Run 'parse' first.[/]")
+        console.print(
+            "[yellow]No progress database found.[/]\n"
+            "Run 'twitter-cleaner parse' first to load your archive."
+        )
         return
 
-    db = ProgressDB(db_path)
-    stats = db.stats_by_type()
-    db.close()
+    try:
+        db = ProgressDB(db_path)
+        stats = db.stats_by_type()
+        db.close()
+    except sqlite3.DatabaseError as e:
+        raise click.ClickException(
+            f"Could not read progress database: {e}\n"
+            "Fix: delete .twitter_cleaner/progress.db and run 'twitter-cleaner parse' again."
+        )
 
     if not stats:
         console.print("[yellow]No records in database.[/]")
@@ -358,15 +398,26 @@ def status():
 )
 def reset(item_type: str | None, from_status: str):
     """Re-queue items for retry (default: re-queues failed items)."""
+    import sqlite3
+
     from twitter_cleaner.store.progress_db import ProgressDB
 
     cfg = Config()
     db_path = cfg.db_file
     if not db_path.exists():
-        console.print("[yellow]No progress database found. Run 'parse' first.[/]")
+        console.print(
+            "[yellow]No progress database found.[/]\n"
+            "Run 'twitter-cleaner parse' first to load your archive."
+        )
         return
 
-    db = ProgressDB(db_path)
-    count = db.reset_status(item_type, from_status)
-    db.close()
+    try:
+        db = ProgressDB(db_path)
+        count = db.reset_status(item_type, from_status)
+        db.close()
+    except sqlite3.OperationalError as e:
+        raise click.ClickException(
+            f"Database error: {e}\n"
+            "If the database is locked, close any other running twitter-cleaner instances."
+        )
     console.print(f"[green]Reset {count} items from '{from_status}' → 'pending'.[/]")

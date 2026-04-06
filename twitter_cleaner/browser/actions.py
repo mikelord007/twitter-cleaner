@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import random
 from typing import Literal
 
 from playwright.async_api import Locator, Page, TimeoutError as PlaywrightTimeout
 
-ActionResult = Literal["done", "skipped", "failed"]
+ActionResult = Literal["done", "skipped", "failed", "blocked"]
+
+
+def _is_login_page(url: str) -> bool:
+    return "login" in url or "i/flow/login" in url or "i/flow/signup" in url
 
 _UNAVAILABLE_TEXTS = [
     "This Tweet is unavailable",
@@ -41,6 +46,9 @@ async def delete_tweet(
     except PlaywrightTimeout:
         return "failed"
 
+    if _is_login_page(page.url):
+        return "blocked"
+
     if resp and resp.status == 404:
         return "skipped"
 
@@ -70,6 +78,8 @@ async def delete_tweet(
             await _highlight(delete_item)
             return "done"
 
+        await delete_item.hover()
+        await asyncio.sleep(random.uniform(0.2, 0.5))
         await delete_item.click()
         await asyncio.sleep(0.5)
 
@@ -95,6 +105,9 @@ async def undo_retweet(
         resp = await page.goto(url, wait_until="domcontentloaded", timeout=20000)
     except PlaywrightTimeout:
         return "failed"
+
+    if _is_login_page(page.url):
+        return "blocked"
 
     if resp and resp.status == 404:
         return "skipped"
@@ -123,6 +136,8 @@ async def undo_retweet(
             await _highlight(undo_item)
             return "done"
 
+        await undo_item.hover()
+        await asyncio.sleep(random.uniform(0.2, 0.5))
         await undo_item.click()
         await asyncio.sleep(1)
 
@@ -142,6 +157,9 @@ async def unlike_tweet(
         resp = await page.goto(url, wait_until="domcontentloaded", timeout=20000)
     except PlaywrightTimeout:
         return "failed"
+
+    if _is_login_page(page.url):
+        return "blocked"
 
     if resp and resp.status == 404:
         return "skipped"
@@ -165,6 +183,8 @@ async def unlike_tweet(
             await _highlight(unlike_btn)
             return "done"
 
+        await unlike_btn.hover()
+        await asyncio.sleep(random.uniform(0.2, 0.5))
         await unlike_btn.click()
         await asyncio.sleep(1)
 

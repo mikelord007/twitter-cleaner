@@ -30,10 +30,28 @@ class TwitterSession:
             args=["--disable-blink-features=AutomationControlled"],
         )
 
-        # Hide the webdriver flag.
-        await self.context.add_init_script(
-            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        )
+        # Stealth patches — hide common Playwright/automation fingerprints.
+        await self.context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+
+            // Restore realistic plugin list (headless Chrome has none).
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5],
+            });
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['en-US', 'en'],
+            });
+
+            // Chrome runtime object is missing in automation contexts.
+            window.chrome = { runtime: {} };
+
+            // Prevent detection via Notification.permission probe.
+            const origQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (params) =>
+                params.name === 'notifications'
+                    ? Promise.resolve({ state: Notification.permission })
+                    : origQuery(params);
+        """)
 
         # Reuse the first tab Playwright opens automatically; close any extras.
         pages = self.context.pages

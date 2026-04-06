@@ -7,6 +7,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterator
 
+import click
+
 
 class TweetType(str, Enum):
     TWEET = "tweet"
@@ -34,8 +36,20 @@ def _strip_js_wrapper(text: str) -> str:
 
 
 def _load_js_file(path: Path) -> list[dict]:
-    text = path.read_text(encoding="utf-8")
-    return json.loads(_strip_js_wrapper(text))
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        raise click.ClickException(
+            f"Could not read {path.name}: file is not valid UTF-8.\n"
+            "Re-download your Twitter archive and try again."
+        )
+    try:
+        return json.loads(_strip_js_wrapper(text))
+    except json.JSONDecodeError as e:
+        raise click.ClickException(
+            f"Could not parse {path.name}: invalid JSON at line {e.lineno}.\n"
+            "The archive file may be corrupted. Re-download your Twitter archive and try again."
+        )
 
 
 def _classify(tweet: dict) -> TweetType:
@@ -61,23 +75,35 @@ def parse_tweets(archive_dir: Path) -> Iterator[TweetRecord]:
     parts = sorted(archive_dir.glob("tweets*.js"))
     for path in parts:
         entries = _load_js_file(path)
-        for entry in entries:
+        for i, entry in enumerate(entries):
             tweet = entry.get("tweet", entry)
-            yield TweetRecord(
-                id=tweet["id"],
-                tweet_type=_classify(tweet),
-                text=tweet.get("full_text", ""),
-                created_at=tweet.get("created_at", ""),
-            )
+            try:
+                yield TweetRecord(
+                    id=tweet["id"],
+                    tweet_type=_classify(tweet),
+                    text=tweet.get("full_text", ""),
+                    created_at=tweet.get("created_at", ""),
+                )
+            except KeyError as e:
+                raise click.ClickException(
+                    f"Unrecognised format in {path.name} (entry {i}): missing field {e}.\n"
+                    "Make sure you're using an official Twitter/X data export."
+                )
 
 
 def parse_likes(archive_dir: Path) -> Iterator[LikeRecord]:
     parts = sorted(archive_dir.glob("like*.js"))
     for path in parts:
         entries = _load_js_file(path)
-        for entry in entries:
+        for i, entry in enumerate(entries):
             like = entry.get("like", entry)
-            yield LikeRecord(
-                id=like["tweetId"],
-                text=like.get("fullText", ""),
-            )
+            try:
+                yield LikeRecord(
+                    id=like["tweetId"],
+                    text=like.get("fullText", ""),
+                )
+            except KeyError as e:
+                raise click.ClickException(
+                    f"Unrecognised format in {path.name} (entry {i}): missing field {e}.\n"
+                    "Make sure you're using an official Twitter/X data export."
+                )

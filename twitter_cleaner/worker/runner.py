@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 
 
 BATCH_SIZE = 50
+LONG_BREAK_EVERY = 50   # actions between long pauses
+LONG_BREAK_MIN   = 180  # seconds
+LONG_BREAK_MAX   = 360  # seconds
 
 
 async def run_deletion(
@@ -32,7 +35,11 @@ async def run_deletion(
     initial_by_type = db.stats_by_type()
     if item_types:
         initial_by_type = {t: s for t, s in initial_by_type.items() if t in item_types}
-    types_totals = {t: s.pending + s.failed for t, s in initial_by_type.items()}
+
+    if before_date or after_date:
+        types_totals = _count_filtered_totals(db, item_types, before_date, after_date)
+    else:
+        types_totals = {t: s.pending + s.failed for t, s in initial_by_type.items()}
     overall_total = sum(types_totals.values())
 
     dry_run = config.dry_run
@@ -87,19 +94,40 @@ async def _run_dry(page, db, config, ui, item_types, before_date, after_date,
 
 async def _run_live(page, db, config, ui, item_types, before_date, after_date,
                     llm_filter, llm_description):
-    consecutive_failures = 0
+    from twitter_cleaner.store.progress_db import ItemStats
 
-    while True:
+    consecutive_failures = 0
+    action_count = 0
+
+    # When filters are active the DB stats include items outside the range
+    # (they get marked skipped), which would make the bar overshoot the
+    # filtered total shown at startup. Track counts locally instead.
+    use_local_stats = bool(before_date or after_date or llm_filter)
+    local_by_type: dict[str, ItemStats] = {}
+    local_overall = ItemStats()
+
+    # When a date filter is active, items outside the range stay pending in the DB.
+    # Normal batch pagination would keep re-fetching the same non-matching items
+    # forever (or break early and miss items that DO match later in the sort order).
+    # Pre-fetching everything and filtering in memory avoids both problems.
+    if before_date or after_date or llm_filter:
+        all_pending = db.get_pending(item_types, limit=999_999)
+        work_list = _apply_filters(db, all_pending, before_date, after_date, llm_filter, llm_description)
+    else:
+        work_list = None  # use normal batching below
+
+    def _next_batch(idx: int):
+        if work_list is not None:
+            chunk = work_list[idx: idx + BATCH_SIZE]
+            return chunk, idx + len(chunk)
         batch = db.get_pending(item_types, BATCH_SIZE)
+        return batch, 0  # idx unused for normal batching
+
+    idx = 0
+    while True:
+        batch, idx = _next_batch(idx)
         if not batch:
             break
-
-        # Apply in-memory filters to batch
-        if before_date or after_date or llm_filter:
-            batch = _apply_filters(db, batch, before_date, after_date, llm_filter, llm_description)
-        if not batch:
-            # All items in this batch were filtered out (marked skipped) — re-query
-            continue
 
         for row in batch:
             tweet_id = row["id"]
@@ -107,9 +135,21 @@ async def _run_live(page, db, config, ui, item_types, before_date, after_date,
 
             result = await _process_one(page, tweet_id, row_type, config)
 
-            if result == "done":
+            if result == "blocked":
+                console.print(
+                    "\n[bold red]Twitter has ended your session.[/]\n"
+                    "[yellow]This usually means Twitter detected automation or rate-limited your IP.[/]\n"
+                    "Progress is saved. Try the following:\n"
+                    "  1. Wait 15–30 minutes before retrying.\n"
+                    "  2. Increase delays:  --min-delay 8 --max-delay 15\n"
+                    "  3. If using --no-stealth, remove it to re-enable long pauses.\n"
+                    "  4. Log in again manually when you rerun the command.\n"
+                )
+                return
+            elif result == "done":
                 db.mark_done(tweet_id, row_type)
                 consecutive_failures = 0
+                action_count += 1
             elif result == "skipped":
                 db.mark_skipped(tweet_id, row_type)
                 consecutive_failures = 0
@@ -119,17 +159,58 @@ async def _run_live(page, db, config, ui, item_types, before_date, after_date,
                 if consecutive_failures >= 5:
                     backoff = min(60 * (2 ** (consecutive_failures - 5)), 600)
                     console.print(
-                        f"[yellow]Too many failures — backing off for {backoff}s[/]"
+                        f"[yellow]{consecutive_failures} failures in a row — "
+                        f"Twitter may be slowing down responses. "
+                        f"Backing off for {backoff}s...[/]"
                     )
                     await asyncio.sleep(backoff)
 
-            live_by_type = db.stats_by_type()
-            if item_types:
-                live_by_type = {t: s for t, s in live_by_type.items() if t in item_types}
-            ui.update(live_by_type, db.stats(item_types))
+            if use_local_stats:
+                s = local_by_type.setdefault(row_type, ItemStats())
+                if result == "done":
+                    s.done += 1
+                    local_overall.done += 1
+                elif result == "skipped":
+                    s.skipped += 1
+                    local_overall.skipped += 1
+                elif result == "failed":
+                    s.failed += 1
+                    local_overall.failed += 1
+                ui.update(local_by_type, local_overall)
+            else:
+                live_by_type = db.stats_by_type()
+                if item_types:
+                    live_by_type = {t: s for t, s in live_by_type.items() if t in item_types}
+                ui.update(live_by_type, db.stats(item_types))
 
-            jitter = random.uniform(config.min_delay, config.max_delay)
-            await asyncio.sleep(jitter)
+            # Periodic long break to avoid rate-limit detection.
+            if config.stealth and action_count > 0 and action_count % LONG_BREAK_EVERY == 0:
+                pause = random.uniform(LONG_BREAK_MIN, LONG_BREAK_MAX)
+                console.print(
+                    f"[cyan]Pausing for {pause:.0f}s after {action_count} actions "
+                    f"to avoid rate-limiting...[/]"
+                )
+                await asyncio.sleep(pause)
+            else:
+                jitter = random.uniform(config.min_delay, config.max_delay)
+                await asyncio.sleep(jitter)
+
+
+def _count_filtered_totals(
+    db,
+    item_types: list[str] | None,
+    before_date,
+    after_date,
+) -> dict[str, int]:
+    """Pre-scan pending items and count only those that pass the date filter."""
+    from twitter_cleaner.filters.date_filter import in_date_range
+
+    counts: dict[str, int] = {}
+    for row in db.pending_dates(item_types):
+        tweet_date = row["tweet_date"] or ""
+        if in_date_range(tweet_date, before=before_date, after=after_date):
+            counts[row["type"]] = counts.get(row["type"], 0) + 1
+    return counts
 
 
 def _apply_filters(db, batch, before_date, after_date, llm_filter, llm_description, dry_run=False):
@@ -140,8 +221,8 @@ def _apply_filters(db, batch, before_date, after_date, llm_filter, llm_descripti
         if before_date or after_date:
             tweet_date = row["tweet_date"] or ""
             if not in_date_range(tweet_date, before=before_date, after=after_date):
-                if not dry_run:
-                    db.mark_skipped(row["id"], row["type"])
+                # Date filter is session-scoped — leave the item pending in the DB
+                # so it can be picked up by a future run without a date restriction.
                 continue
         filtered.append(row)
 

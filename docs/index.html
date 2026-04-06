@@ -1400,6 +1400,11 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
               <td>Run browser without a visible window</td>
             </tr>
             <tr>
+              <td>--stealth / --no-stealth</td>
+              <td>on</td>
+              <td>Pause for 3–6 minutes every 50 deletions to avoid Twitter rate-limiting. Pass <code>--no-stealth</code> to skip these breaks.</td>
+            </tr>
+            <tr>
               <td>--min-delay FLOAT</td>
               <td>3.0</td>
               <td>Minimum seconds to wait between actions</td>
@@ -1633,6 +1638,7 @@ source .venv/bin/activate   <span class="c-comment"># Windows: .venv\Scripts\act
   <span class="c-flag">--type</span> tweet|reply|quote|retweet|like  <span class="c-comment"># repeatable; default: all</span>
   <span class="c-flag">--dry-run</span>
   <span class="c-flag">--headless</span>
+  <span class="c-flag">--no-stealth</span>             <span class="c-comment"># skip periodic long pauses (stealth on by default)</span>
   <span class="c-flag">--min-delay</span> FLOAT        <span class="c-comment"># default: 3.0</span>
   <span class="c-flag">--max-delay</span> FLOAT        <span class="c-comment"># default: 6.0</span>
   <span class="c-flag">--before</span> YYYY-MM-DD

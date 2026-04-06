@@ -143,6 +143,24 @@ class ProgressDB:
             skipped=counts.get("skipped", 0),
         )
 
+    def pending_dates(
+        self, item_types: list[str] | None = None
+    ) -> list[sqlite3.Row]:
+        """Return (type, tweet_date) rows for all pending/failed items (no limit).
+        Used to compute date-filtered totals before the progress bar is shown."""
+        if item_types:
+            placeholders = ",".join("?" * len(item_types))
+            return self._conn.execute(
+                f"SELECT type, tweet_date FROM items "
+                f"WHERE status IN ('pending', 'failed') AND retry_count < 3 "
+                f"AND type IN ({placeholders})",
+                tuple(item_types),
+            ).fetchall()
+        return self._conn.execute(
+            "SELECT type, tweet_date FROM items "
+            "WHERE status IN ('pending', 'failed') AND retry_count < 3"
+        ).fetchall()
+
     def stats_by_type(self) -> dict[str, ItemStats]:
         rows = self._conn.execute(
             "SELECT type, status, COUNT(*) as n FROM items GROUP BY type, status"
