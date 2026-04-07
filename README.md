@@ -246,6 +246,54 @@ twitter-cleaner delete --no-stealth
 
 ---
 
+## Development
+
+### Running tests
+
+Install dev dependencies and the Playwright browser:
+
+```bash
+pip install -e ".[dev]"
+playwright install chromium
+```
+
+Run the full suite:
+
+```bash
+pytest
+```
+
+Run only the fast unit tests (no browser):
+
+```bash
+pytest tests/ --ignore=tests/test_browser_actions.py --ignore=tests/test_scraper.py
+```
+
+Run only browser tests:
+
+```bash
+pytest tests/test_browser_actions.py tests/test_scraper.py -v
+```
+
+### Test structure
+
+| File | What's tested |
+|---|---|
+| `test_parser.py` | Archive JS parsing, tweet classification, multi-part files |
+| `test_date_filter.py` | Snowflake ID decoding, date comparison, range logic |
+| `test_llm_filter.py` | All three LLM providers, error handling (401/429/network), `KeywordFilter` |
+| `test_progress_db.py` | SQLite operations, backfill, retry counts, type ordering |
+| `test_config.py` | Config defaults, validation, path properties |
+| `test_errors.py` | Friendly error messages for all SQLite and Playwright error types |
+| `test_cli.py` | CLI commands via Click test runner, date parsing, LLM filter wiring |
+| `test_worker.py` | Filter application (date + LLM), `_process_one` dispatch |
+| `test_browser_actions.py` | `delete_tweet`, `undo_retweet`, `unlike_tweet` — all result codes via mock pages |
+| `test_scraper.py` | Profile scraper scroll logic with mock pages |
+
+Browser tests intercept `https://x.com/**` at the network layer and serve local HTML — no real network access needed.
+
+---
+
 ## Notes
 
 - **Session cookies** are saved to `.twitter_cleaner/session.json` so you only need to log in once per session expiry.
