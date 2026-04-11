@@ -90,7 +90,7 @@ class OpenRouterFilter(_OpenAICompatibleFilter):
     _default_model = "meta-llama/llama-3.1-8b-instruct:free"
 
     def _extra_headers(self) -> dict[str, str]:
-        return {"X-Title": "twitter-cleaner"}
+        return {"X-Title": "twtr-cleaner"}
 
 
 class AnthropicFilter:

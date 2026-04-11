@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -10,6 +12,26 @@ from rich.console import Console
 from twitter_cleaner.config import Config
 
 console = Console()
+
+
+def _ensure_browser() -> None:
+    """Install Chromium on first run if it's not already present."""
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            browser.close()
+    except Exception:
+        console.print("[bold]First run: installing Chromium browser (one-time, ~100 MB)...[/]")
+        result = subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=False,
+        )
+        if result.returncode != 0:
+            raise click.ClickException(
+                "Failed to install Chromium. Try running manually:\n"
+                "  playwright install chromium"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -202,7 +224,7 @@ def parse(archive_dir: Path):
     console.print(f"[dim]Backfilled: {tweet_backfilled + like_backfilled}  |  Likes with no derivable date: {likes_no_date}  |  Still NULL in DB: {null_in_db}[/]")
     if sample_like:
         console.print(f"[dim]Sample like — id: {sample_like['id']}  tweet_date: {sample_like['tweet_date']!r}[/]")
-    console.print("[dim]Run 'twitter-cleaner status' to see full counts.[/]")
+    console.print("[dim]Run 'twtr-cleaner status' to see full counts.[/]")
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +249,7 @@ def scrape(tweets: bool, likes: bool, headless: bool):
     progress database. Limited to roughly your last 3200 tweets by Twitter.
     Use 'parse' with a downloaded archive to get your full history.
     """
+    _ensure_browser()
     asyncio.run(_run_scrape(tweets, likes, headless))
 
 
@@ -275,7 +298,7 @@ async def _run_scrape(do_tweets: bool, do_likes: bool, headless: bool) -> None:
             await session.close()
             db.close()
 
-    console.print("[dim]Run 'twitter-cleaner status' to see full counts.[/]")
+    console.print("[dim]Run 'twtr-cleaner status' to see full counts.[/]")
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +327,7 @@ def delete(
     llm_description, llm_provider, llm_model, llm_api_key,
 ):
     """Delete your Twitter history. Use --type to target specific kinds."""
+    _ensure_browser()
     cfg = _build_config(headless, dry_run, min_delay, max_delay, stealth=stealth)
     dt_before, dt_after = _parse_date_range(before_date, after_date)
     llm = _build_llm_filter(llm_provider, llm_api_key, llm_description, llm_model)
@@ -364,7 +388,7 @@ def status():
     if not db_path.exists():
         console.print(
             "[yellow]No progress database found.[/]\n"
-            "Run 'twitter-cleaner parse' first to load your archive."
+            "Run 'twtr-cleaner parse' first to load your archive."
         )
         return
 
@@ -375,7 +399,7 @@ def status():
     except sqlite3.DatabaseError as e:
         raise click.ClickException(
             f"Could not read progress database: {e}\n"
-            "Fix: delete .twitter_cleaner/progress.db and run 'twitter-cleaner parse' again."
+            "Fix: delete .twitter_cleaner/progress.db and run 'twtr-cleaner parse' again."
         )
 
     if not stats:
@@ -416,7 +440,7 @@ def reset(item_type: str | None, from_status: str):
     if not db_path.exists():
         console.print(
             "[yellow]No progress database found.[/]\n"
-            "Run 'twitter-cleaner parse' first to load your archive."
+            "Run 'twtr-cleaner parse' first to load your archive."
         )
         return
 
@@ -427,6 +451,6 @@ def reset(item_type: str | None, from_status: str):
     except sqlite3.OperationalError as e:
         raise click.ClickException(
             f"Database error: {e}\n"
-            "If the database is locked, close any other running twitter-cleaner instances."
+            "If the database is locked, close any other running twtr-cleaner instances."
         )
     console.print(f"[green]Reset {count} items from '{from_status}' → 'pending'.[/]")

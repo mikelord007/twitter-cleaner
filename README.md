@@ -1,4 +1,4 @@
-# twitter-cleaner
+# twtr-cleaner
 
 Delete your entire Twitter/X history — tweets, replies, retweets, quotes, and likes — using your data archive and browser automation. No API key required.
 
@@ -13,20 +13,11 @@ Delete your entire Twitter/X history — tweets, replies, retweets, quotes, and 
 
 ## Setup
 
-### Option A — quickstart script
-
 ```bash
-python install.py
+pip install twtr-cleaner
 ```
 
-This creates a `.venv`, installs the package, and installs the Playwright browser automatically.
-
-### Option B — manual
-
-```bash
-pip install -e .
-playwright install chromium
-```
+Chromium is downloaded automatically the first time you run a command that needs the browser (~100 MB, one-time).
 
 ### Configure credentials
 
@@ -61,19 +52,19 @@ twitter_del/
 Then parse it:
 
 ```bash
-twitter-cleaner parse
+twtr-cleaner parse
 ```
 
 By default this reads from `data/`. Pass `--archive-dir` to use a different location:
 
 ```bash
-twitter-cleaner parse --archive-dir /path/to/archive/data
+twtr-cleaner parse --archive-dir /path/to/archive/data
 ```
 
 ### Option B — scrape your live profile (limited to ~3200 tweets)
 
 ```bash
-twitter-cleaner scrape
+twtr-cleaner scrape
 ```
 
 This scrolls your tweets and/or likes tabs in a browser and loads found IDs into the database. Twitter limits profile scraping to roughly your last 3200 tweets, so use the archive approach to get your full history.
@@ -81,8 +72,8 @@ This scrolls your tweets and/or likes tabs in a browser and loads found IDs into
 Scrape only tweets or only likes:
 
 ```bash
-twitter-cleaner scrape --no-likes    # tweets/replies only
-twitter-cleaner scrape --no-tweets   # likes only
+twtr-cleaner scrape --no-likes    # tweets/replies only
+twtr-cleaner scrape --no-tweets   # likes only
 ```
 
 ---
@@ -90,7 +81,7 @@ twitter-cleaner scrape --no-tweets   # likes only
 ## Checking what was loaded
 
 ```bash
-twitter-cleaner status
+twtr-cleaner status
 ```
 
 ---
@@ -100,7 +91,7 @@ twitter-cleaner status
 ### Delete everything
 
 ```bash
-twitter-cleaner delete
+twtr-cleaner delete
 ```
 
 ### Delete specific types
@@ -108,10 +99,10 @@ twitter-cleaner delete
 Use `--type` (repeatable) to target specific categories:
 
 ```bash
-twitter-cleaner delete --type tweets     # original tweets only
-twitter-cleaner delete --type likes      # unlike all liked tweets
-twitter-cleaner delete --type tweets --type likes
-twitter-cleaner delete --type tweets --type replies --type retweets --type quotes  # everything except likes
+twtr-cleaner delete --type tweets     # original tweets only
+twtr-cleaner delete --type likes      # unlike all liked tweets
+twtr-cleaner delete --type tweets --type likes
+twtr-cleaner delete --type tweets --type replies --type retweets --type quotes  # everything except likes
 ```
 
 Available types: `tweets`, `replies`, `quotes`, `retweets`, `likes`
@@ -121,7 +112,7 @@ Omitting `--type` entirely deletes all five types.
 ### Dry run (test without deleting)
 
 ```bash
-twitter-cleaner delete --dry-run
+twtr-cleaner delete --dry-run
 ```
 
 The browser will open and navigate to each item but won't click Delete.
@@ -131,7 +122,7 @@ The browser will open and navigate to each item but won't click Delete.
 The browser is shown by default. To run headlessly in the background:
 
 ```bash
-twitter-cleaner delete --headless
+twtr-cleaner delete --headless
 ```
 
 ---
@@ -142,13 +133,13 @@ twitter-cleaner delete --headless
 
 ```bash
 # Only delete posts from before 2023
-twitter-cleaner delete --type tweets --before 2023-01-01
+twtr-cleaner delete --type tweets --before 2023-01-01
 
 # Only delete posts from after 2020
-twitter-cleaner delete --type tweets --after 2020-01-01
+twtr-cleaner delete --type tweets --after 2020-01-01
 
 # Combine to target a date range
-twitter-cleaner delete --type tweets --after 2020-01-01 --before 2023-01-01
+twtr-cleaner delete --type tweets --after 2020-01-01 --before 2023-01-01
 ```
 
 ### By content using an LLM
@@ -157,19 +148,19 @@ Use an LLM to classify each tweet and only delete the ones that match a descript
 
 ```bash
 # Delete only tweets that look like angry or political posts
-twitter-cleaner delete --type tweets \
+twtr-cleaner delete --type tweets \
   --filter "angry, political, or inflammatory posts" \
   --llm-provider openai \
   --llm-api-key sk-...
 
 # Using Anthropic Claude instead
-twitter-cleaner delete --type tweets \
+twtr-cleaner delete --type tweets \
   --filter "shitposts and low-effort jokes" \
   --llm-provider anthropic \
   --llm-api-key sk-ant-...
 
 # Using OpenRouter (access to many models)
-twitter-cleaner delete --type tweets \
+twtr-cleaner delete --type tweets \
   --filter "anything embarrassing" \
   --llm-provider openrouter \
   --llm-api-key sk-or-...
@@ -185,7 +176,7 @@ You can also set the API key via environment variable:
 #### Specifying a model
 
 ```bash
-twitter-cleaner delete --type tweets \
+twtr-cleaner delete --type tweets \
   --filter "low-effort jokes" \
   --llm-provider openai \
   --llm-model gpt-4o-mini
@@ -197,7 +188,7 @@ Defaults to a cheap model for each provider if `--llm-model` is omitted.
 
 ```bash
 # Delete only shitposts from before 2022
-twitter-cleaner delete --type tweets \
+twtr-cleaner delete --type tweets \
   --before 2022-01-01 \
   --filter "shitposts" \
   --llm-provider openai
@@ -217,13 +208,13 @@ Tweets that no longer exist (already deleted manually, or deleted by Twitter) ar
 
 ```bash
 # Show status
-twitter-cleaner status
+twtr-cleaner status
 
 # Re-queue failed items for retry
-twitter-cleaner reset --status failed
+twtr-cleaner reset --status failed
 
 # Re-queue skipped items (if you want to retry unavailable ones)
-twitter-cleaner reset --status skipped --type tweets
+twtr-cleaner reset --status skipped --type tweets
 ```
 
 ---
@@ -235,13 +226,13 @@ The tool waits 3–6 seconds (randomised) between each deletion by default. Stea
 Adjust delays:
 
 ```bash
-twitter-cleaner delete --min-delay 5 --max-delay 10
+twtr-cleaner delete --min-delay 5 --max-delay 10
 ```
 
 Disable stealth mode pauses:
 
 ```bash
-twitter-cleaner delete --no-stealth
+twtr-cleaner delete --no-stealth
 ```
 
 ---
@@ -254,7 +245,7 @@ Install dev dependencies and the Playwright browser:
 
 ```bash
 pip install -e ".[dev]"
-playwright install chromium
+playwright install chromium  # browser tests need this; end-users get it automatically
 ```
 
 Run the full suite:

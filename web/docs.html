@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Docs — twitter-cleaner</title>
-  <meta name="description" content="Full documentation for twitter-cleaner: installation, commands, date filters, LLM content filtering, and troubleshooting." />
-  <meta property="og:title" content="twitter-cleaner — Documentation" />
+  <title>Docs — twtr-cleaner</title>
+  <meta name="description" content="Full documentation for twtr-cleaner: installation, commands, date filters, LLM content filtering, and troubleshooting." />
+  <meta property="og:title" content="twtr-cleaner — Documentation" />
   <meta property="og:description" content="Full CLI reference for bulk-deleting your Twitter/X history." />
 
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d9bf0'/%3E%3Cpath d='M8 8L24 24M24 8L8 24' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='7' r='3' fill='white' opacity='0.95'/%3E%3Ccircle cx='21' cy='5' r='1.8' fill='white' opacity='0.6'/%3E%3C/svg%3E" />
@@ -1134,7 +1134,7 @@
         <circle cx="21" cy="5.5" r="1.6" fill="white" opacity="0.55"/>
       </svg>
       <div class="sidebar-logo-text">
-        <h1>twitter-cleaner</h1>
+        <h1>twtr-cleaner</h1>
         <p>CLI documentation</p>
       </div>
     </a>
@@ -1173,7 +1173,7 @@
         <button class="mobile-nav-btn" aria-label="Open navigation" onclick="toggleSidebar()">
           <span></span><span></span><span></span>
         </button>
-        <span class="topbar-title">twitter-cleaner</span>
+        <span class="topbar-title">twtr-cleaner</span>
         <span class="version-badge">v0.1.0</span>
       </div>
       <div class="search-wrap" id="search-wrap">
@@ -1192,7 +1192,7 @@
 
       <!-- Hero -->
       <div class="hero">
-        <h1>twitter-cleaner</h1>
+        <h1>twtr-cleaner</h1>
         <p>Delete your entire Twitter/X history — tweets, retweets, replies, quotes, and likes — via browser automation. No API key needed.</p>
         <div class="hero-tags">
           <span class="tag tag-blue">Playwright-based</span>
@@ -1210,7 +1210,7 @@
           <span class="section-icon">📖</span>
           <h2>Overview</h2>
         </div>
-        <p>twitter-cleaner automates the deletion of your Twitter/X history by controlling a real browser with Playwright. It tracks progress in a local SQLite database so you can safely pause and resume at any time.</p>
+        <p>twtr-cleaner automates the deletion of your Twitter/X history by controlling a real browser with Playwright. It tracks progress in a local SQLite database so you can safely pause and resume at any time.</p>
         <p>There are two ways to feed it your data: parsing a <strong>downloaded archive</strong> (full history) or <strong>live-scraping</strong> your profile (last ~3200 tweets). Once loaded, you can filter by date range or use an LLM to target specific content before deleting.</p>
 
         <div class="method-grid">
@@ -1246,28 +1246,12 @@
           <div class="step">
             <div class="step-num">1</div>
             <div class="step-body">
-              <h4>Clone the repository</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>git clone https://github.com/mikelord007/twitter-cleaner.git
-cd twitter-cleaner</code></pre>
+              <h4>Install (Python 3.11+)</h4>
+              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>pip install twtr-cleaner</code></pre>
+              <p>Chromium is downloaded automatically the first time you run a command that needs the browser (~100 MB, one-time).</p>
             </div>
           </div>
 
-          <div class="step">
-            <div class="step-num">2</div>
-            <div class="step-body">
-              <h4>Run the installer (Python 3.11+)</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>python install.py</code></pre>
-              <p>This creates a virtual environment, installs the package, and installs the Playwright browser.</p>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-num">3</div>
-            <div class="step-body">
-              <h4>Activate the virtual environment</h4>
-              <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>source .venv/bin/activate   <span class="c-comment"># For Windows: .venv\Scripts\activate</span></code></pre>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1447,7 +1431,7 @@ cd twitter-cleaner</code></pre>
         <p>Once downloaded, extract the archive and point the tool at the folder containing <code>tweets.js</code>, <code>like.js</code>, etc.</p>
 
         <h3>Command</h3>
-        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> <span class="c-str">./twitter-archive/data</span></code></pre>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twtr-cleaner parse</span> <span class="c-flag">--archive-dir</span> <span class="c-str">./twitter-archive/data</span></code></pre>
 
         <h3>Options</h3>
         <table class="opts-table">
@@ -1465,13 +1449,13 @@ cd twitter-cleaner</code></pre>
 
         <h3>Example</h3>
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Default — looks for archive data in ./data</span>
-<span class="c-cmd">twitter-cleaner parse</span>
+<span class="c-cmd">twtr-cleaner parse</span>
 
 <span class="c-comment"># Custom archive path</span>
-<span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> ~/Downloads/twitter-2024/data</code></pre>
+<span class="c-cmd">twtr-cleaner parse</span> <span class="c-flag">--archive-dir</span> ~/Downloads/twitter-2024/data</code></pre>
 
         <p style="margin-top:12px">After parsing, check how many records were loaded:</p>
-        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner status</span></code></pre>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twtr-cleaner status</span></code></pre>
       </section>
 
       <!-- Scrape -->
@@ -1488,7 +1472,7 @@ cd twitter-cleaner</code></pre>
         </div>
 
         <h3>Command</h3>
-        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner scrape</span></code></pre>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twtr-cleaner scrape</span></code></pre>
 
         <h3>Options</h3>
         <table class="opts-table">
@@ -1516,13 +1500,13 @@ cd twitter-cleaner</code></pre>
 
         <h3>Examples</h3>
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Scrape both tweets and likes (default)</span>
-<span class="c-cmd">twitter-cleaner scrape</span>
+<span class="c-cmd">twtr-cleaner scrape</span>
 
 <span class="c-comment"># Only scrape tweets, skip likes</span>
-<span class="c-cmd">twitter-cleaner scrape</span> <span class="c-flag">--no-likes</span>
+<span class="c-cmd">twtr-cleaner scrape</span> <span class="c-flag">--no-likes</span>
 
 <span class="c-comment"># Run headlessly in the background</span>
-<span class="c-cmd">twitter-cleaner scrape</span> <span class="c-flag">--headless</span></code></pre>
+<span class="c-cmd">twtr-cleaner scrape</span> <span class="c-flag">--headless</span></code></pre>
       </section>
 
       <!-- Delete -->
@@ -1533,7 +1517,7 @@ cd twitter-cleaner</code></pre>
         </div>
         <p>Once your data is loaded (via <code>parse</code> or <code>scrape</code>), run <code>delete</code>. The browser will open — if you are not already logged in, sign in manually, then the tool will start processing items from the database.</p>
 
-        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">[--type TYPE]</span> <span class="c-flag">[OPTIONS]</span></code></pre>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">[--type TYPE]</span> <span class="c-flag">[OPTIONS]</span></code></pre>
 
         <div class="alert alert-warn">
           <span class="alert-icon">⚠️</span>
@@ -1611,22 +1595,22 @@ cd twitter-cleaner</code></pre>
 
         <h3 id="delete-examples">Examples</h3>
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Dry run — preview everything that would be deleted</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--dry-run</span>
+<span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">--dry-run</span>
 
 <span class="c-comment"># Delete everything</span>
-<span class="c-cmd">twitter-cleaner delete</span>
+<span class="c-cmd">twtr-cleaner delete</span>
 
 <span class="c-comment"># Delete only likes</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> likes
+<span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">--type</span> likes
 
 <span class="c-comment"># Delete only replies, before 2026</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> replies <span class="c-flag">--before</span> <span class="c-str">2026-01-01</span>
+<span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">--type</span> replies <span class="c-flag">--before</span> <span class="c-str">2026-01-01</span>
 
 <span class="c-comment"># Delete tweets, replies and quotes — not retweets or likes</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--type</span> tweets <span class="c-flag">--type</span> replies <span class="c-flag">--type</span> quotes
+<span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">--type</span> tweets <span class="c-flag">--type</span> replies <span class="c-flag">--type</span> quotes
 
 <span class="c-comment"># Delete everything, headlessly, with faster pacing</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">--headless --min-delay</span> 1.5 <span class="c-flag">--max-delay</span> 3.0</code></pre>
+<span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">--headless --min-delay</span> 1.5 <span class="c-flag">--max-delay</span> 3.0</code></pre>
       </section>
 
       <!-- Date filter -->
@@ -1644,13 +1628,13 @@ cd twitter-cleaner</code></pre>
 
         <h3>Examples</h3>
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Delete everything posted before 2022</span>
-<span class="c-cmd">twitter-cleaner delete all</span> <span class="c-flag">--before</span> <span class="c-str">2022-01-01</span>
+<span class="c-cmd">twtr-cleaner delete all</span> <span class="c-flag">--before</span> <span class="c-str">2022-01-01</span>
 
 <span class="c-comment"># Delete tweets from a specific year (2020)</span>
-<span class="c-cmd">twitter-cleaner delete tweets</span> <span class="c-flag">--after</span> <span class="c-str">2020-01-01</span> <span class="c-flag">--before</span> <span class="c-str">2021-01-01</span>
+<span class="c-cmd">twtr-cleaner delete tweets</span> <span class="c-flag">--after</span> <span class="c-str">2020-01-01</span> <span class="c-flag">--before</span> <span class="c-str">2021-01-01</span>
 
 <span class="c-comment"># Unlike all likes before 2023, dry run first</span>
-<span class="c-cmd">twitter-cleaner delete likes</span> <span class="c-flag">--before</span> <span class="c-str">2023-01-01</span> <span class="c-flag">--dry-run</span></code></pre>
+<span class="c-cmd">twtr-cleaner delete likes</span> <span class="c-flag">--before</span> <span class="c-str">2023-01-01</span> <span class="c-flag">--dry-run</span></code></pre>
       </section>
 
       <!-- LLM filter -->
@@ -1683,24 +1667,24 @@ cd twitter-cleaner</code></pre>
 
         <h3>Examples</h3>
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Delete angry or political tweets using OpenAI</span>
-<span class="c-cmd">twitter-cleaner delete tweets</span> \
+<span class="c-cmd">twtr-cleaner delete tweets</span> \
   <span class="c-flag">--filter</span> <span class="c-str">"angry political tweets"</span> \
   <span class="c-flag">--llm-provider</span> openai
 
 <span class="c-comment"># Use Anthropic Claude with a specific model</span>
-<span class="c-cmd">twitter-cleaner delete tweets</span> \
+<span class="c-cmd">twtr-cleaner delete tweets</span> \
   <span class="c-flag">--filter</span> <span class="c-str">"self-promotional posts about my startup"</span> \
   <span class="c-flag">--llm-provider</span> anthropic \
   <span class="c-flag">--llm-model</span> claude-haiku-4-5-20251001
 
 <span class="c-comment"># Use OpenRouter (free tier available)</span>
-<span class="c-cmd">twitter-cleaner delete tweets</span> \
+<span class="c-cmd">twtr-cleaner delete tweets</span> \
   <span class="c-flag">--filter</span> <span class="c-str">"tweets mentioning competitors"</span> \
   <span class="c-flag">--llm-provider</span> openrouter \
   <span class="c-flag">--llm-model</span> <span class="c-str">mistralai/mistral-7b-instruct</span>
 
 <span class="c-comment"># Combine with a date range — old embarrassing tweets</span>
-<span class="c-cmd">twitter-cleaner delete tweets</span> \
+<span class="c-cmd">twtr-cleaner delete tweets</span> \
   <span class="c-flag">--before</span> <span class="c-str">2020-01-01</span> \
   <span class="c-flag">--filter</span> <span class="c-str">"cringe or embarrassing content"</span> \
   <span class="c-flag">--llm-provider</span> openai \
@@ -1720,7 +1704,7 @@ cd twitter-cleaner</code></pre>
         </div>
         <p>Check how many items are pending, done, failed, or skipped — broken down by type.</p>
 
-        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner status</span></code></pre>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twtr-cleaner status</span></code></pre>
 
         <p>Outputs a table like:</p>
         <pre><code>┌──────────┬─────────┬──────┬────────┬─────────┐
@@ -1743,7 +1727,7 @@ cd twitter-cleaner</code></pre>
         </div>
         <p>Re-queue items for retry by resetting their status back to <code>pending</code>. Useful after transient failures or network errors.</p>
 
-        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">[OPTIONS]</span></code></pre>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-cmd">twtr-cleaner reset</span> <span class="c-flag">[OPTIONS]</span></code></pre>
 
         <h3>Options</h3>
         <table class="opts-table">
@@ -1766,16 +1750,16 @@ cd twitter-cleaner</code></pre>
 
         <h3>Examples</h3>
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># Re-queue all failed items (default)</span>
-<span class="c-cmd">twitter-cleaner reset</span>
+<span class="c-cmd">twtr-cleaner reset</span>
 
 <span class="c-comment"># Re-queue only failed tweets</span>
-<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> tweets <span class="c-flag">--status</span> failed
+<span class="c-cmd">twtr-cleaner reset</span> <span class="c-flag">--type</span> tweets <span class="c-flag">--status</span> failed
 
 <span class="c-comment"># Re-queue skipped likes (e.g. to retry with different settings)</span>
-<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--type</span> likes <span class="c-flag">--status</span> skipped
+<span class="c-cmd">twtr-cleaner reset</span> <span class="c-flag">--type</span> likes <span class="c-flag">--status</span> skipped
 
 <span class="c-comment"># Reset everything that was marked done (USE WITH CAUTION)</span>
-<span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
+<span class="c-cmd">twtr-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
       </section>
 
       <!-- All commands -->
@@ -1786,15 +1770,15 @@ cd twitter-cleaner</code></pre>
         </div>
 
         <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code><span class="c-comment"># ── Data ingestion ─────────────────────────────────────────</span>
-<span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> PATH
+<span class="c-cmd">twtr-cleaner parse</span> <span class="c-flag">--archive-dir</span> PATH
 
-<span class="c-cmd">twitter-cleaner scrape</span>
+<span class="c-cmd">twtr-cleaner scrape</span>
   <span class="c-flag">--tweets</span> / <span class="c-flag">--no-tweets</span>
   <span class="c-flag">--likes</span>  / <span class="c-flag">--no-likes</span>
   <span class="c-flag">--headless</span>
 
 <span class="c-comment"># ── Deletion ────────────────────────────────────────────────</span>
-<span class="c-cmd">twitter-cleaner delete</span> <span class="c-flag">[OPTIONS]</span>
+<span class="c-cmd">twtr-cleaner delete</span> <span class="c-flag">[OPTIONS]</span>
 
 <span class="c-comment"># Options:</span>
   <span class="c-flag">--type</span> tweets|replies|quotes|retweets|likes  <span class="c-comment"># repeatable; default: all</span>
@@ -1811,9 +1795,9 @@ cd twitter-cleaner</code></pre>
   <span class="c-flag">--llm-api-key</span> KEY
 
 <span class="c-comment"># ── Management ──────────────────────────────────────────────</span>
-<span class="c-cmd">twitter-cleaner status</span>
+<span class="c-cmd">twtr-cleaner status</span>
 
-<span class="c-cmd">twitter-cleaner reset</span>
+<span class="c-cmd">twtr-cleaner reset</span>
   <span class="c-flag">--type</span>   tweets|replies|retweets|quotes|likes
   <span class="c-flag">--status</span> failed|skipped|done    <span class="c-comment"># default: failed</span></code></pre>
       </section>
@@ -1847,8 +1831,8 @@ cd twitter-cleaner</code></pre>
             </div>
             <div class="trouble-a">
               <p>This usually means Twitter is rate-limiting or temporarily blocking requests. Increase the delay between actions:</p>
-              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner delete tweets</span> <span class="c-flag">--min-delay</span> 8 <span class="c-flag">--max-delay</span> 15</code></pre>
-              <p>After the run, reset failed items and retry: <code>twitter-cleaner reset</code></p>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twtr-cleaner delete tweets</span> <span class="c-flag">--min-delay</span> 8 <span class="c-flag">--max-delay</span> 15</code></pre>
+              <p>After the run, reset failed items and retry: <code>twtr-cleaner reset</code></p>
             </div>
           </div>
 
@@ -1859,8 +1843,8 @@ cd twitter-cleaner</code></pre>
             </div>
             <div class="trouble-a">
               <p>Items that fail 3 times are no longer retried automatically. Reset them back to <code>pending</code> and run delete again:</p>
-              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner reset</span>          <span class="c-comment"># resets all failed items</span>
-<span class="c-cmd">twitter-cleaner delete tweets</span>   <span class="c-comment"># retries them</span></code></pre>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twtr-cleaner reset</span>          <span class="c-comment"># resets all failed items</span>
+<span class="c-cmd">twtr-cleaner delete tweets</span>   <span class="c-comment"># retries them</span></code></pre>
             </div>
           </div>
 
@@ -1871,7 +1855,7 @@ cd twitter-cleaner</code></pre>
             </div>
             <div class="trouble-a">
               <p>This was fixed in a recent update — dry-run no longer writes any status changes to the database. If you ran an older version, reset the affected items:</p>
-              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twtr-cleaner reset</span> <span class="c-flag">--status</span> done</code></pre>
               <p><strong>Caution:</strong> this also resets anything that was genuinely deleted. Only do this if the done count doesn't reflect real deletions.</p>
             </div>
           </div>
@@ -1883,7 +1867,7 @@ cd twitter-cleaner</code></pre>
             </div>
             <div class="trouble-a">
               <p>Items are skipped when they return a 404 (already deleted), the tweet is unavailable, or they fall outside your date filter. Check your <code>--before</code> / <code>--after</code> flags.</p>
-              <p>To retry skipped items with different settings: <code>twitter-cleaner reset --status skipped</code></p>
+              <p>To retry skipped items with different settings: <code>twtr-cleaner reset --status skipped</code></p>
             </div>
           </div>
 
@@ -1894,7 +1878,7 @@ cd twitter-cleaner</code></pre>
             </div>
             <div class="trouble-a">
               <p>Make sure you're pointing at the right directory. The tool looks for <code>tweets.js</code> / <code>tweets-part1.js</code> etc. inside the path you provide. Your archive should have a <code>data/</code> folder — use that:</p>
-              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner parse</span> <span class="c-flag">--archive-dir</span> ~/Downloads/twitter-archive/data</code></pre>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twtr-cleaner parse</span> <span class="c-flag">--archive-dir</span> ~/Downloads/twitter-archive/data</code></pre>
             </div>
           </div>
 
@@ -1906,7 +1890,7 @@ cd twitter-cleaner</code></pre>
             <div class="trouble-a">
               <p>Be specific in your description. Vague prompts like <em>"bad tweets"</em> tend to match everything. Try something like <em>"tweets expressing strong political opinions"</em> or <em>"self-promotional posts about my side project"</em>.</p>
               <p>Always combine with <code>--dry-run</code> to preview what the LLM selects before actually deleting:</p>
-              <pre style="margin:8px 0"><code><span class="c-cmd">twitter-cleaner delete tweets</span> <span class="c-flag">--filter</span> <span class="c-str">"your description"</span> <span class="c-flag">--llm-provider</span> openai <span class="c-flag">--dry-run</span></code></pre>
+              <pre style="margin:8px 0"><code><span class="c-cmd">twtr-cleaner delete tweets</span> <span class="c-flag">--filter</span> <span class="c-str">"your description"</span> <span class="c-flag">--llm-provider</span> openai <span class="c-flag">--dry-run</span></code></pre>
             </div>
           </div>
 
@@ -1932,7 +1916,7 @@ cd twitter-cleaner</code></pre>
           <path d="M8.5 8.5L23.5 23.5M23.5 8.5L8.5 23.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
           <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
         </svg>
-        twitter-cleaner
+        twtr-cleaner
       </a>
       <div class="footer-links-row">
         <a href="landing.html">Home</a>
@@ -2039,7 +2023,7 @@ cd twitter-cleaner</code></pre>
     const isAll = ALL_TYPES.every(t => checked.includes(t));
     const typeFlags = isAll ? [] : checked.map(t => `--type ${t}`);
 
-    let parts = ['twitter-cleaner delete', ...typeFlags];
+    let parts = ['twtr-cleaner delete', ...typeFlags];
     if (dryRun)   parts.push('--dry-run');
     if (headless) parts.push('--headless');
     if (after)    parts.push(`--after ${after}`);

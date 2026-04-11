@@ -35,12 +35,12 @@ def _friendly(exc: Exception) -> click.ClickException:
         if "locked" in msg:
             return click.ClickException(
                 "Progress database is locked by another process.\n"
-                "Make sure no other instance of twitter-cleaner is running, then retry."
+                "Make sure no other instance of twtr-cleaner is running, then retry."
             )
         if "no such table" in msg or "no such column" in msg:
             return click.ClickException(
                 "Progress database schema is outdated or corrupted.\n"
-                "Fix: delete .twitter_cleaner/progress.db and run 'twitter-cleaner parse' again."
+                "Fix: delete .twitter_cleaner/progress.db and run 'twtr-cleaner parse' again."
             )
         if "unable to open" in msg:
             return click.ClickException(
@@ -57,7 +57,7 @@ def _friendly(exc: Exception) -> click.ClickException:
     if isinstance(exc, sqlite3.DatabaseError):
         return click.ClickException(
             "Progress database is corrupted.\n"
-            "Fix: delete .twitter_cleaner/progress.db and run 'twitter-cleaner parse' again."
+            "Fix: delete .twitter_cleaner/progress.db and run 'twtr-cleaner parse' again."
         )
 
     # File / permission errors

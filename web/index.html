@@ -5,21 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- ── SEO ── -->
-  <title>twitter-cleaner — Bulk-delete your X / Twitter history. No API key needed.</title>
+  <title>twtr-cleaner — Bulk-delete your X / Twitter history. No API key needed.</title>
   <meta name="description" content="Open-source CLI tool to bulk-delete tweets, retweets, replies, quotes, and likes. Works with your full Twitter archive — not limited to 3,200 posts. No API key required. Smart date & LLM filters included." />
   <meta name="keywords" content="twitter cleaner, delete tweets, bulk delete twitter, remove twitter history, X cleaner, delete likes twitter, twitter archive delete, open source twitter tool, playwright twitter" />
-  <meta name="author" content="twitter-cleaner" />
+  <meta name="author" content="twtr-cleaner" />
   <meta name="robots" content="index, follow" />
 
   <!-- ── Open Graph ── -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="twitter-cleaner — Delete your X / Twitter history" />
+  <meta property="og:title" content="twtr-cleaner — Delete your X / Twitter history" />
   <meta property="og:description" content="Bulk-delete tweets, retweets, likes, and replies. Works with your full Twitter archive. No API key required." />
   <meta property="og:image" content="og-image.png" />
 
   <!-- ── Twitter Card ── -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="twitter-cleaner" />
+  <meta name="twitter:title" content="twtr-cleaner" />
   <meta name="twitter:description" content="Bulk-delete your Twitter / X history. No API key needed." />
   <meta name="twitter:image" content="og-image.png" />
 
@@ -960,7 +960,7 @@
       <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
       <circle cx="21" cy="5.5" r="1.6" fill="white" opacity="0.55"/>
     </svg>
-    <span class="nav-logo-text">twitter-cleaner</span>
+    <span class="nav-logo-text">twtr-cleaner</span>
   </a>
 
   <div class="nav-links">
@@ -1043,10 +1043,10 @@
           <div class="t-btn t-btn-red"></div>
           <div class="t-btn t-btn-amber"></div>
           <div class="t-btn t-btn-green"></div>
-          <span class="terminal-title">twitter-cleaner — zsh</span>
+          <span class="terminal-title">twtr-cleaner — zsh</span>
         </div>
         <div class="terminal-body">
-          <div><span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span> <span class="t-flag">--type</span> likes <span class="t-flag">--before</span> 2022-01-01</div>
+          <div><span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner delete</span> <span class="t-flag">--type</span> likes <span class="t-flag">--before</span> 2022-01-01</div>
           <br/>
           <div class="t-bar-wrap">
             <span class="t-label">Likes&nbsp;&nbsp;&nbsp;&nbsp;</span>
@@ -1264,7 +1264,7 @@
         <div class="how-num">2</div>
         <div>
           <div class="how-step-title">Load your history</div>
-          <div class="how-step-desc">Download your Twitter archive from account settings and run <code style="font-size:11px;color:#60c4ff">twitter-cleaner parse</code>. Tens of thousands of items load in seconds.</div>
+          <div class="how-step-desc">Download your Twitter archive from account settings and run <code style="font-size:11px;color:#60c4ff">twtr-cleaner parse</code>. Tens of thousands of items load in seconds.</div>
         </div>
       </div>
 
@@ -1299,8 +1299,7 @@
 
         <div class="code-panel active" id="panel-0">
           <span class="t-dim"># 1. Install</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">pip install -e .</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">playwright install chrome</span><br/><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">pip install twtr-cleaner</span><br/><br/>
           <span class="t-dim"># 2. Configure .env</span><br/>
           <span class="t-prompt">❯ </span><span class="t-cmd">cp .env.example .env</span><br/>
           <span class="t-dim"># add TWITTER_USERNAME=yourhandle</span>
@@ -1308,31 +1307,31 @@
 
         <div class="code-panel" id="panel-1">
           <span class="t-dim"># Parse your downloaded archive</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner parse</span> <span class="t-flag">--archive-dir</span> ./data<br/><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner parse</span> <span class="t-flag">--archive-dir</span> ./data<br/><br/>
           <span class="t-green">Parsed 14,821 tweets/retweets/replies, 6,203 likes.</span><br/>
           <span class="t-green">New records added: 21,024</span><br/><br/>
           <span class="t-dim"># No archive? Scrape the live profile instead</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner scrape</span>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner scrape</span>
         </div>
 
         <div class="code-panel" id="panel-2">
           <span class="t-dim"># Always preview first</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span> <span class="t-flag">--dry-run</span><br/><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner delete</span> <span class="t-flag">--dry-run</span><br/><br/>
           <span class="t-dim"># Then delete for real</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span><br/><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner delete</span><br/><br/>
           <span class="t-dim"># Target specific types &amp; dates</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner delete</span> <span class="t-flag">--type</span> likes <span class="t-flag">--before</span> <span class="t-yellow">2022-01-01</span>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner delete</span> <span class="t-flag">--type</span> likes <span class="t-flag">--before</span> <span class="t-yellow">2022-01-01</span>
         </div>
 
         <div class="code-panel" id="panel-3">
           <span class="t-dim"># Check progress</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner status</span><br/><br/>
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner status</span><br/><br/>
           <span class="t-dim">  Type      Pending  Done  Failed  Skipped</span><br/>
           <span class="t-dim">  ────────  ───────  ────  ──────  ───────</span><br/>
           <span class="t-cmd">  tweet         0   9821       3      241</span><br/>
           <span class="t-cmd">  like        412   5791       0        0</span><br/><br/>
           <span class="t-dim"># Re-queue any failures</span><br/>
-          <span class="t-prompt">❯ </span><span class="t-cmd">twitter-cleaner reset</span> <span class="t-flag">--status</span> failed
+          <span class="t-prompt">❯ </span><span class="t-cmd">twtr-cleaner reset</span> <span class="t-flag">--status</span> failed
         </div>
 
       </div>
@@ -1362,7 +1361,7 @@
         Items outside the range stay pending — run again without the flag to process them later.
       </div>
       <div class="filter-code">
-        <span class="kw">twitter-cleaner delete</span><br/>
+        <span class="kw">twtr-cleaner delete</span><br/>
         &nbsp;&nbsp;<span class="val">--after</span> <span class="str">2020-01-01</span><br/>
         &nbsp;&nbsp;<span class="val">--before</span> <span class="str">2022-06-01</span><br/>
         &nbsp;&nbsp;<span class="val">--type</span> tweets
@@ -1376,7 +1375,7 @@
         Describe what to delete in plain English. An LLM reads each tweet and decides if it matches before the action runs. Combine with <code style="font-size:11px;color:#60c4ff">--dry-run</code> to preview selections.
       </div>
       <div class="filter-code">
-        <span class="kw">twitter-cleaner delete</span><br/>
+        <span class="kw">twtr-cleaner delete</span><br/>
         &nbsp;&nbsp;<span class="val">--filter</span> <span class="str">"angry political tweets"</span><br/>
         &nbsp;&nbsp;<span class="val">--llm-provider</span> openai<br/>
         &nbsp;&nbsp;<span class="val">--dry-run</span>
@@ -1390,7 +1389,7 @@
         Stack date ranges and LLM filters together. The date filter runs first (fast, no API calls), then the LLM only evaluates the remaining items.
       </div>
       <div class="filter-code">
-        <span class="kw">twitter-cleaner delete</span><br/>
+        <span class="kw">twtr-cleaner delete</span><br/>
         &nbsp;&nbsp;<span class="val">--before</span> <span class="str">2021-01-01</span><br/>
         &nbsp;&nbsp;<span class="val">--filter</span> <span class="str">"cringe content"</span><br/>
         &nbsp;&nbsp;<span class="val">--llm-provider</span> anthropic
@@ -1452,7 +1451,7 @@
       <path d="M8.5 8.5L23.5 23.5M23.5 8.5L8.5 23.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
       <circle cx="24.5" cy="7.5" r="2.8" fill="white" opacity="0.92"/>
     </svg>
-    twitter-cleaner
+    twtr-cleaner
   </div>
 
   <div class="footer-links">
